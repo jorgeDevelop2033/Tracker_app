@@ -55,20 +55,15 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Si usas puerto custom, define VM_PORT. Si usas 22, no lo pongas
-          if [ -n "${{ secrets.VM_PORT }}" ]; then
-            ssh-keyscan -p ${{ secrets.VM_PORT }} ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
-          else
-            ssh-keyscan ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
-          fi
-
+          ssh-keyscan -p ${{ secrets.VM_PORT }} -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+        
       - name: Ensure remote directories exist
         run: |
-          ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
-            mkdir -p /home/${{ secrets.VM_USER }}/tracker_websocket &&
-            sudo mkdir -p /var/log/tracker &&
-            sudo chown -R \$(whoami):\$(whoami) /var/log/tracker
-          "
+           ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
+             mkdir -p /home/${{ secrets.VM_USER }}/tracker_websocket &&
+             sudo mkdir -p /var/log/tracker &&
+             sudo chown -R \$(whoami):\$(whoami) /var/log/tracker
+              "
 
       - name: Rsync WebSocket publish to Remote VM
         run: |
