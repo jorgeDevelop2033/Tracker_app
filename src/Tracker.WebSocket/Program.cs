@@ -17,14 +17,28 @@ builder.Host.UseSerilog();
 // 🔹 Servicios
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ITrackerService, TrackerService>();
-//builder.Services.AddAutoMapper(typeof(Program));
 
-// 🔹 Construcción de app
+// 🔹 Configurar CORS para permitir acceso desde tu iPhone
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactNative", policy =>
+    {
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .SetIsOriginAllowed(_ => true); // ⚠️ Permite todos los orígenes (ajusta si quieres más seguro)
+    });
+});
+
 var app = builder.Build();
+
+// 🔹 Usar CORS
+app.UseCors("AllowReactNative");
 
 app.MapGet("/", () => "Tracker WebSocket is running 🚀");
 
-// WebSocket (SignalR)
+// 🔹 WebSocket (SignalR)
 app.MapHub<TrackerHub>("/trackerHub");
 
-app.Run();
+app.Run(); // 👈 Escucha en todas las interfaces

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 
 var connection = new HubConnectionBuilder()
-    .WithUrl("http://localhost:5137/trackerHub")
+    .WithUrl("http://192.168.10.32:5137/trackerHub")
     .Build();
 
 await connection.StartAsync();
