@@ -50,17 +50,16 @@ jobs:
           name: tracker-websocket
           path: ./tracker_websocket
 
-      # MISMA FORMA QUE TU WORKFLOW QUE FUNCIONA
       - name: Set up SSH key (igual que otros pipelines)
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          # por si el secret quedó con CRLF
+          # Normaliza CRLF por si el secret fue pegado desde Windows
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.VM_PORT }} -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
-		  
-	  - name: Test SSH connection
+
+      - name: Test SSH connection
         run: |
           ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "echo ✅ Conexión desde GitHub exitosa"
 
@@ -80,8 +79,10 @@ jobs:
       - name: Build and restart Docker container
         run: |
           ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            set -e
             cd /home/${{ secrets.VM_USER }}/tracker_websocket/Tracker.WebSocket
-            docker stop tracker_websocket || true && docker rm tracker_websocket || true
+            docker stop tracker_websocket || true
+            docker rm tracker_websocket || true
             docker build -t tracker_websocket .
             docker run -d \
               --name tracker_websocket \
