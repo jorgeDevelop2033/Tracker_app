@@ -59,6 +59,10 @@ jobs:
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.VM_PORT }} -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+		  
+	    - name: Test SSH connection
+        run: |
+          ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "echo ✅ Conexión desde GitHub exitosa"
 
       - name: Ensure remote directories exist
         run: |
