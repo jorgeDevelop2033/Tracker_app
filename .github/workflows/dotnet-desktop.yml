@@ -50,36 +50,66 @@ jobs:
           name: tracker-websocket
           path: ./tracker_websocket
 
-      - name: Set up SSH key (normaliza \n y CRLF)
+      - name: Set up SSH key (robusto)
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          # Guarda el secret tal cual
-          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_raw
-          # Convierte '\n' literales a saltos reales, por si el secret vino en una sola línea
-          sed 's/\\n/\n/g' ~/.ssh/id_raw > ~/.ssh/id_tmp || true
-          # Quita CR por si lo copiaron desde Windows
-          tr -d '\r' < ~/.ssh/id_tmp > ~/.ssh/id_rsa
+          # Guarda el secret tal cual llegó
+          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_incoming
+
+          # Quita CR (por si vino con CRLF)
+          tr -d '\r' < ~/.ssh/id_incoming > ~/.ssh/id_tmp
+
+          # ¿Ya tiene headers de PEM/OpenSSH?
+          if grep -qE '^-----BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY-----' ~/.ssh/id_tmp; then
+            cp ~/.ssh/id_tmp ~/.ssh/id_rsa
+          else
+            # Probablemente vino en una sola línea con '\n' literales
+            sed 's/\\n/\n/g' ~/.ssh/id_tmp > ~/.ssh/id_rsa
+          fi
+
+          # Permisos y known_hosts
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.VM_PORT }} -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
       - name: Sanity-check key
+        shell: bash
         run: |
-          echo "Cabecera de la clave:"
-          head -n1 ~/.ssh/id_rsa
-          echo "Validando con ssh-keygen…"
-          ssh-keygen -yf ~/.ssh/id_rsa > /dev/null \
-            && echo "✅ Clave válida para OpenSSH" \
-            || (echo "❌ Clave inválida (formato/CRLF/escapes)"; exit 1)
+          set -euo pipefail
+          echo "Cabecera detectada:"
+          head -n1 ~/.ssh/id_rsa || true
+
+          # Confirma que tenga BEGIN/END correctos
+          if ! grep -qE '^-----BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY-----' ~/.ssh/id_rsa; then
+            echo "❌ La clave no tiene un encabezado BEGIN válido. Revisa el secret."
+            exit 1
+          fi
+          if ! tail -n1 ~/.ssh/id_rsa | grep -qE '^-----END (OPENSSH|RSA|EC|DSA) PRIVATE KEY-----$'; then
+            echo "❌ La clave no tiene un pie END válido. Revisa el secret (posible truncamiento)."
+            exit 1
+          fi
+
+          # Validación con ssh-keygen (fallará si está corrupta)
+          if ssh-keygen -yf ~/.ssh/id_rsa > /dev/null 2>&1; then
+            echo "✅ Clave válida para OpenSSH"
+          else
+            echo "❌ Clave inválida (formato/escapes/truncada o con passphrase)."
+            echo "   Sugerencia: vuelve a copiarla desde tu ~/.ssh/id_rsa con:"
+            echo "   pbcopy < ~/.ssh/id_rsa   (macOS)  |  xclip -sel clip < ~/.ssh/id_rsa (Linux)"
+            exit 1
+          fi
+
           echo "Fingerprint:"
-          ssh-keygen -lf ~/.ssh/id_rsa
+          ssh-keygen -lf ~/.ssh/id_rsa || true
 
       - name: Test SSH connection
         run: |
-          ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "echo ✅ Conexión desde GitHub exitosa"
+          ssh -o IdentitiesOnly=yes -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "echo ✅ Conexión desde GitHub exitosa"
 
       - name: Ensure remote directories exist
         run: |
-          ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
+          ssh -o IdentitiesOnly=yes -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
             mkdir -p /home/${{ secrets.VM_USER }}/tracker_websocket &&
             sudo mkdir -p /var/log/tracker &&
             sudo chown -R \$(whoami):\$(whoami) /var/log/tracker
@@ -87,12 +117,12 @@ jobs:
 
       - name: Rsync WebSocket publish to Remote VM
         run: |
-          rsync -avz -e "ssh -p ${{ secrets.VM_PORT }}" ./tracker_websocket/ \
+          rsync -avz -e "ssh -o IdentitiesOnly=yes -p ${{ secrets.VM_PORT }}" ./tracker_websocket/ \
             ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/home/${{ secrets.VM_USER }}/tracker_websocket
 
       - name: Build and restart Docker container
         run: |
-          ssh -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+          ssh -o IdentitiesOnly=yes -p ${{ secrets.VM_PORT }} ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             set -e
             cd /home/${{ secrets.VM_USER }}/tracker_websocket/Tracker.WebSocket
             docker stop tracker_websocket || true
@@ -104,4 +134,3 @@ jobs:
               -v /var/log/tracker:/app/Logs \
               tracker_websocket
           EOF
-
