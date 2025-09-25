@@ -50,14 +50,28 @@ jobs:
           name: tracker-websocket
           path: ./tracker_websocket
 
-      - name: Set up SSH key (igual que otros pipelines)
+      - name: Set up SSH key (normaliza \n y CRLF)
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          # Normaliza CRLF por si el secret fue pegado desde Windows
-          sed -i 's/\r$//' ~/.ssh/id_rsa
+          # Guarda el secret tal cual
+          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_raw
+          # Convierte '\n' literales a saltos reales, por si el secret vino en una sola línea
+          sed 's/\\n/\n/g' ~/.ssh/id_raw > ~/.ssh/id_tmp || true
+          # Quita CR por si lo copiaron desde Windows
+          tr -d '\r' < ~/.ssh/id_tmp > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.VM_PORT }} -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sanity-check key
+        run: |
+          echo "Cabecera de la clave:"
+          head -n1 ~/.ssh/id_rsa
+          echo "Validando con ssh-keygen…"
+          ssh-keygen -yf ~/.ssh/id_rsa > /dev/null \
+            && echo "✅ Clave válida para OpenSSH" \
+            || (echo "❌ Clave inválida (formato/CRLF/escapes)"; exit 1)
+          echo "Fingerprint:"
+          ssh-keygen -lf ~/.ssh/id_rsa
 
       - name: Test SSH connection
         run: |
@@ -90,3 +104,4 @@ jobs:
               -v /var/log/tracker:/app/Logs \
               tracker_websocket
           EOF
+
