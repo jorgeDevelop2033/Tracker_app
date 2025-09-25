@@ -1,4 +1,4 @@
-name: Build and Deploy Tracker.WebSocket to VPS1
+name: Build and Deploy Tracker.WebSocket to VPS
 
 on:
   push:
