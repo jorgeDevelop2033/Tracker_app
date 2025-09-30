@@ -13,5 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Tracker.Application\Tracker.Application.csproj" />
+    <ProjectReference Include="..\Tracker.Contracts\Tracker.Contracts.csproj" />
   </ItemGroup>
 </Project>

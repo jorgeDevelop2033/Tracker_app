@@ -1,12 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using Tracker.Infrastructure.DependencyInjection;
+using Tracker.Infrastructure.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// OpenAPI (minimal en .NET 9)
 builder.Services.AddOpenApi();
+
+// EF Core + SQL Server + NetTopologySuite (registrado desde Infrastructure)
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -14,28 +19,29 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+// Endpoints de ejemplo
+app.MapGet("/health", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }))
+   .WithName("Health");
 
-app.MapGet("/weatherforecast", () =>
+// Mini endpoint para ver pórticos desde la BD
+app.MapGet("/api/porticos", async (TrackerDbContext db) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var data = await db.Porticos
+        .AsNoTracking()
+        .OrderBy(p => p.Autopista).ThenBy(p => p.Codigo)
+        .Select(p => new
+        {
+            p.Id,
+            p.Autopista,
+            p.Codigo,
+            p.Sentido,
+            p.Descripcion,
+            p.LongitudKm
+            // Nota: Ubicacion/Corredor son geography; si quieres, expórtalos a WKT/WKB
+        })
+        .ToListAsync();
+
+    return Results.Ok(data);
+}).WithName("GetPorticos");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
