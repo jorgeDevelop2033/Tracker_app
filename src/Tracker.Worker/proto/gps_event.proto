@@ -1,0 +1,13 @@
+﻿syntax = "proto3";
+package tracker;
+import "google/protobuf/timestamp.proto";
+
+message GpsEventV2 {
+  string deviceId   = 1;
+  double lat        = 2;
+  double lon        = 3;
+  optional double speedKph   = 4;
+  optional double headingDeg = 5;
+  google.protobuf.Timestamp utc = 6;
+  optional double accuracyM  = 7;
+}

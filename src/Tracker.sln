@@ -19,7 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tracker.Contracts", "Tracke
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elementos de la solución", "Elementos de la solución", "{D107F4C8-89CC-BEA8-D3D7-CA6B7733353D}"
 	ProjectSection(SolutionItems) = preProject
+		ComandoMQ_Rabbit.txt = ComandoMQ_Rabbit.txt
 		comandosEntitys_OtrasCosas.txt = comandosEntitys_OtrasCosas.txt
+		definitions.json = definitions.json
+		docker-compose.yml = docker-compose.yml
 	EndProjectSection
 EndProject
 Global

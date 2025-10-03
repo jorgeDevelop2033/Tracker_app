@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Tracker.Worker-0527e2d2-ad0f-49fe-a1c2-06c16b0c2ec4</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.11.1" />
+    <PackageReference Include="Confluent.SchemaRegistry" Version="2.11.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
+    <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tracker.Application\Tracker.Application.csproj" />
+    <ProjectReference Include="..\Tracker.Contracts\Tracker.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="proto\gps_event.proto">
+      <ProtoRoot>proto</ProtoRoot>
+      <GrpcServices>None</GrpcServices>
+      <OutputDir>Generated</OutputDir>
+    </None>
+  </ItemGroup>
+</Project>

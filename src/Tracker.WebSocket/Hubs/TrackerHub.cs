@@ -1,34 +1,35 @@
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Tracker.Contracts;
 using Tracker.WebSocket.DTOs;
-using Tracker.WebSocket.Services;
+using Tracker.WebSocket.Messaging;
 
 namespace Tracker.WebSocket.Hubs
 {
     public class TrackerHub : Hub
     {
-        private readonly ITrackerService _trackerService;
+        private readonly IKafkaPublisher _bus;
+        private readonly IConfiguration _cfg;
 
-        public TrackerHub(ITrackerService trackerService)
+        public TrackerHub(IKafkaPublisher bus, IConfiguration cfg)
         {
-            _trackerService = trackerService;
+            _bus = bus; _cfg = cfg;
         }
 
-        public async Task SendCoordinate(CoordinateDto coordinate)
+        public async Task SendCoordinate(CoordinateDto c)
         {
-            await _trackerService.ProcessCoordinateAsync(coordinate);
-
             var ev = new GpsEvent(
-           DeviceId: coordinate.DeviceId ?? Context.ConnectionId,
-           Lat: coordinate.Latitude, Lon: coordinate.Longitude,
-           SpeedKph: coordinate.SpeedKph, HeadingDeg: coordinate.HeadingDeg,
-           Utc: coordinate.Timestamp,
-           AccuracyM: coordinate.AccuracyM
-        );
-            //await _bus.Publish(ev); // <-- a la cola
+                DeviceId: c.DeviceId ?? Context.ConnectionId,
+                Lat: c.Latitude,
+                Lon: c.Longitude,
+                SpeedKph: c.SpeedKph,
+                HeadingDeg: c.HeadingDeg,
+                Utc: c.Timestamp,
+                AccuracyM: c.AccuracyM
+            );
 
-            // Opcional: reenviar en tiempo real a otros clientes conectados
-           // await Clients.Others.SendAsync("ReceiveCoordinate", coordinate);
+            var proto = ev.ToProto();
+            var topic = _cfg["Kafka:Topic"] ?? "tracker.gps.events";
+            await _bus.PublishAsync(topic, proto.DeviceId, proto);
         }
     }
 }

@@ -3,7 +3,7 @@ name: Build and Deploy Tracker.WebSocket to VPS
 on:
   push:
     branches:
-      - master2
+      - master
   workflow_dispatch:
 
 jobs:
