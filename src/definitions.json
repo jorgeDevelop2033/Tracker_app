@@ -1,0 +1,50 @@
+{
+  "vhosts": [ { "name": "/" } ],
+  "users": [
+    {
+      "name": "admin",
+      "password_hash": "",
+      "password": "09mayo84",
+      "tags": "administrator"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "tracker.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "gps_tracker",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "tracker.events",
+      "vhost": "/",
+      "destination": "gps_tracker",
+      "destination_type": "queue",
+      "routing_key": "gps.coordinate.v1",
+      "arguments": {}
+    }
+  ]
+}
