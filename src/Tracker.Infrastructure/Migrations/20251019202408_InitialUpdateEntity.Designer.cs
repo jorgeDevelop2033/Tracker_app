@@ -13,18 +13,97 @@ using Tracker.Infrastructure.Persistence;
 namespace Tracker.Infrastructure.Migrations
 {
     [DbContext(typeof(TrackerDbContext))]
-    [Migration("20250930040426_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251019202408_InitialUpdateEntity")]
+    partial class InitialUpdateEntity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("tracker")
                 .HasAnnotation("ProductVersion", "9.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Tracker.Domain.Entities.GpsFix", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double?>("AccuracyM")
+                        .HasColumnType("float")
+                        .HasColumnName("accuracy_m");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_utc");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("device_id");
+
+                    b.Property<double?>("HeadingDeg")
+                        .HasColumnType("float")
+                        .HasColumnName("heading_deg");
+
+                    b.Property<long>("KafkaOffset")
+                        .HasColumnType("bigint")
+                        .HasColumnName("kafka_offset");
+
+                    b.Property<int>("KafkaPartition")
+                        .HasColumnType("int")
+                        .HasColumnName("kafka_partition");
+
+                    b.Property<string>("KafkaTopic")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("kafka_topic");
+
+                    b.Property<double>("Lat")
+                        .HasColumnType("float")
+                        .HasColumnName("lat");
+
+                    b.Property<Point>("Location")
+                        .IsRequired()
+                        .HasColumnType("geography")
+                        .HasColumnName("location");
+
+                    b.Property<double>("Lon")
+                        .HasColumnType("float")
+                        .HasColumnName("lon");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("rowversion");
+
+                    b.Property<double?>("SpeedKph")
+                        .HasColumnType("float")
+                        .HasColumnName("speed_kph");
+
+                    b.Property<DateTime>("Utc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "Utc")
+                        .HasDatabaseName("ix_gpsfix_device_utc");
+
+                    b.HasIndex("KafkaTopic", "KafkaPartition", "KafkaOffset")
+                        .IsUnique()
+                        .HasDatabaseName("ux_gpsfix_kafka_position");
+
+                    b.ToTable("gps_fix", "tracker");
+                });
 
             modelBuilder.Entity("Tracker.Domain.Entities.Portico", b =>
                 {
@@ -61,7 +140,8 @@ namespace Tracker.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("rowversion")
+                        .HasColumnName("rowversion");
 
                     b.Property<string>("Sentido")
                         .IsRequired()
@@ -79,7 +159,7 @@ namespace Tracker.Infrastructure.Migrations
                     b.HasIndex("Autopista", "Codigo", "Sentido")
                         .IsUnique();
 
-                    b.ToTable("Porticos", (string)null);
+                    b.ToTable("Porticos", "tracker");
                 });
 
             modelBuilder.Entity("Tracker.Domain.Entities.TarifaPortico", b =>
@@ -93,11 +173,13 @@ namespace Tracker.Infrastructure.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("nvarchar(8)");
 
-                    b.Property<int>("Categoria")
-                        .HasColumnType("int");
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
 
                     b.Property<decimal?>("LongitudKmSnapshot")
-                        .HasColumnType("decimal(6,3)");
+                        .HasColumnType("decimal(12,6)");
 
                     b.Property<Guid>("PorticoId")
                         .HasColumnType("uniqueidentifier");
@@ -106,13 +188,14 @@ namespace Tracker.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("rowversion")
+                        .HasColumnName("rowversion");
 
                     b.Property<decimal?>("ValorFijo")
-                        .HasColumnType("decimal(8,2)");
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<decimal?>("ValorPorKm")
-                        .HasColumnType("decimal(8,3)");
+                        .HasColumnType("decimal(12,6)");
 
                     b.Property<DateTime>("VigenteDesde")
                         .HasColumnType("datetime2");
@@ -122,11 +205,13 @@ namespace Tracker.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PorticoId", "Banda", "VigenteDesde");
+                    b.HasIndex("PorticoId", "Banda", "VigenteDesde")
+                        .HasDatabaseName("IX_Tarifa_Banda_Desde");
 
-                    b.HasIndex("PorticoId", "Categoria", "Banda", "VigenteDesde", "VigenteHasta");
+                    b.HasIndex("PorticoId", "Categoria", "Banda", "VigenteDesde", "VigenteHasta")
+                        .HasDatabaseName("IX_Tarifa_Vigencias");
 
-                    b.ToTable("TarifasPortico", (string)null);
+                    b.ToTable("TarifasPortico", "tracker");
                 });
 
             modelBuilder.Entity("Tracker.Domain.Entities.Transito", b =>
@@ -137,45 +222,56 @@ namespace Tracker.Infrastructure.Migrations
 
                     b.Property<string>("Banda")
                         .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasColumnName("Banda");
 
                     b.Property<int>("Categoria")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("Categoria");
 
                     b.Property<double?>("ExactitudM")
-                        .HasColumnType("float");
+                        .HasColumnType("float")
+                        .HasColumnName("ExactitudM");
 
                     b.Property<string>("Fuente")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasColumnName("Fuente");
 
                     b.Property<Guid>("PorticoId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("PorticoId");
 
                     b.Property<Point>("Posicion")
-                        .HasColumnType("geography");
+                        .HasColumnType("geography")
+                        .HasColumnName("Posicion");
 
                     b.Property<decimal>("PrecioCalculado")
-                        .HasColumnType("decimal(12,2)");
+                        .HasColumnType("decimal(18,4)")
+                        .HasColumnName("PrecioCalculado");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("rowversion")
+                        .HasColumnName("rowversion");
 
                     b.Property<DateTime>("Utc")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Utc");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Utc");
+                    b.HasIndex("Utc")
+                        .HasDatabaseName("IX_Transitos_Utc");
 
-                    b.HasIndex("PorticoId", "Utc");
+                    b.HasIndex("PorticoId", "Utc")
+                        .HasDatabaseName("IX_Transitos_Portico_Utc");
 
-                    b.ToTable("Transitos", (string)null);
+                    b.ToTable("Transitos", "tracker");
                 });
 
             modelBuilder.Entity("Tracker.Domain.Entities.TarifaPortico", b =>
@@ -195,7 +291,8 @@ namespace Tracker.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("PorticoId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_Transitos_Portico");
 
                     b.Navigation("Portico");
                 });
