@@ -1,6 +1,0 @@
-@Tracker.WebSocket_HostAddress = http://localhost:5137
-
-GET {{Tracker.WebSocket_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

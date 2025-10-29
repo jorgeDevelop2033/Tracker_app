@@ -1,3 +1,0 @@
-dotnet ef migrations add InitialCreate --project Tracker.Infrastructure --startup-project Tracker.API
-
-dotnet ef database update --project Tracker.Infrastructure --startup-project Tracker.API

@@ -1,8 +1,0 @@
-
-//Crearla cola 
-docker exec -it rabbitmq bash
-rabbitmqadmin -u admin -p admin123 -V / declare exchange name=tracker.events type=topic durable=true
-rabbitmqadmin -u admin -p admin123 -V / declare queue    name=gps_fixes durable=true
-rabbitmqadmin -u admin -p admin123 -V / declare binding  source=tracker.events destination=gps_fixes routing_key=gps.coordinate.v1
-
-
