@@ -15,7 +15,9 @@ namespace Tracker.Infrastructure.Persistence
         public DbSet<Transito> Transitos => Set<Transito>();
         public DbSet<TarifaPortico> TarifasPortico => Set<TarifaPortico>();
         public DbSet<GpsFix> GpsFixes => Set<GpsFix>();
+         
 
+        public Task<int> SaveChangesAsync(CancellationToken ct) => base.SaveChangesAsync(ct);
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Esquema por defecto

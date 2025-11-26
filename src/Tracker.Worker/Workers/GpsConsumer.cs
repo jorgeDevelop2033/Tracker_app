@@ -4,10 +4,10 @@ using Confluent.Kafka.SyncOverAsync;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 using Tracker;
-
-using Microsoft.Extensions.DependencyInjection;          // 👈 para IServiceScopeFactory
-using Tracker.Worker.Application.Services;               // IGpsIngestService
-using Tracker.Worker.Application.Dtos;                   // GpsEventDto, KafkaMetaDto
+       // 👈 IServiceScopeFactory + GetRequiredService
+using Tracker.Worker.Application.Services;   
+using Tracker.Application.Services;
+using Tracker.Application.Dtos;                   // GpsEventDto, KafkaMetaDto
 
 public sealed class GpsConsumer : BackgroundService
 {
@@ -114,10 +114,10 @@ public sealed class GpsConsumer : BackgroundService
                     DeviceId: ev.DeviceId,
                     Lat: ev.Lat,
                     Lon: ev.Lon,
-                    SpeedKph: ev.HasSpeedKph ? ev.SpeedKph : null,
-                    HeadingDeg: ev.HasHeadingDeg ? ev.HeadingDeg : null,
-                    Utc: ev.Utc.ToDateTime(),
-                    AccuracyM: ev.HasAccuracyM ? ev.AccuracyM : null
+                    SpeedKph: ev.HasSpeedKph ? ev.SpeedKph : (double?)null,
+                    HeadingDeg: ev.HasHeadingDeg ? ev.HeadingDeg : (double?)null,
+                    Utc: DateTime.SpecifyKind(ev.Utc.ToDateTime(), DateTimeKind.Utc),
+                    AccuracyM: ev.HasAccuracyM ? ev.AccuracyM : (double?)null
                 );
 
                 var meta = new KafkaMetaDto(
@@ -127,11 +127,15 @@ public sealed class GpsConsumer : BackgroundService
                     Key: cr.Message.Key
                 );
 
-                // 👇 CREA SCOPE y resuelve el servicio scoped aquí
+                // 👇 CREA SCOPE, resuelve servicios scoped y ejecuta ingest + detección de pórtico
                 using (var scope = _scopeFactory.CreateScope())
                 {
                     var ingest = scope.ServiceProvider.GetRequiredService<IGpsIngestService>();
                     await ingest.IngestAsync(dto, meta, stoppingToken);
+
+                    // 🔎 Detección de paso por pórtico (usa tu servicio de detección)
+                    var detector = scope.ServiceProvider.GetRequiredService<IPorticoDetectionService>();
+                    await detector.DetectarYGuardarAsync(dto, meta, stoppingToken);
                 }
 
                 _log.LogInformation("📍 Guardado Device={Device} Lat={Lat} Lon={Lon} @ {Utc} (offset {Partition}:{Offset})",

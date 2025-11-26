@@ -2,9 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Tracker.Application.Services;
+using Tracker.Infrastructure.DependencyInjection;
 using Tracker.Infrastructure.Persistence;
 using Tracker.Infrastructure.Repositories; 
 using Tracker.Worker.Application.Services;
+using Tracker.Worker.Infrastructure.Services;
 
 internal class Program
 {
@@ -33,12 +36,16 @@ internal class Program
             opt.UseSqlServer(cs, sql => sql.UseNetTopologySuite());
         });
 
+        builder.Services.AddInfrastructure(builder.Configuration);
+
+
         // Repo + Service
         builder.Services.AddScoped<
             Tracker.Domain.Abstractions.IGpsFixRepository,
             Tracker.Infrastructure.Repositories.GpsFixRepository>();
 
         builder.Services.AddScoped<IGpsIngestService, GpsIngestService>();
+        builder.Services.AddScoped<IPorticoDetectionService, PorticoDetectionService>();
 
         // Hosted Service
         builder.Services.AddHostedService<GpsConsumer>();

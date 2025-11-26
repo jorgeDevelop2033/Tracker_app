@@ -1,10 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Tracker.Domain\Tracker.Domain.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Interceptors\" />
     <Folder Include="Migrations\" />
     <Folder Include="Seed\" />
@@ -21,6 +17,11 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tracker.Application\Tracker.Application.csproj" />
+    <ProjectReference Include="..\Tracker.Domain\Tracker.Domain.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

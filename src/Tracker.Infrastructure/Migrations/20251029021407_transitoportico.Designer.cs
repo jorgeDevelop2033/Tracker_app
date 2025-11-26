@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Tracker.Infrastructure.Persistence;
@@ -12,9 +13,11 @@ using Tracker.Infrastructure.Persistence;
 namespace Tracker.Infrastructure.Migrations
 {
     [DbContext(typeof(TrackerDbContext))]
-    partial class TrackerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251029021407_transitoportico")]
+    partial class transitoportico
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -217,37 +220,37 @@ namespace Tracker.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Banda")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
+                    b.Property<string>("Banda")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasColumnName("Banda");
 
                     b.Property<int>("Categoria")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(1);
+                        .HasColumnName("Categoria");
 
                     b.Property<double?>("ExactitudM")
-                        .HasColumnType("float");
+                        .HasColumnType("float")
+                        .HasColumnName("ExactitudM");
 
                     b.Property<string>("Fuente")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)")
-                        .HasDefaultValue("GPS");
+                        .HasColumnName("Fuente");
 
                     b.Property<Guid>("PorticoId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("PorticoId");
 
                     b.Property<Point>("Posicion")
-                        .HasColumnType("geography");
+                        .HasColumnType("geography")
+                        .HasColumnName("Posicion");
 
                     b.Property<decimal>("PrecioCalculado")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnName("PrecioCalculado");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -257,15 +260,16 @@ namespace Tracker.Infrastructure.Migrations
                         .HasColumnName("rowversion");
 
                     b.Property<DateTime>("Utc")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Utc");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PorticoId");
+                    b.HasIndex("Utc")
+                        .HasDatabaseName("IX_Transitos_Utc");
 
-                    b.HasIndex("Utc");
-
-                    b.HasIndex("PorticoId", "Utc");
+                    b.HasIndex("PorticoId", "Utc")
+                        .HasDatabaseName("IX_Transitos_Portico_Utc");
 
                     b.ToTable("Transitos", "tracker");
                 });
@@ -342,7 +346,8 @@ namespace Tracker.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("PorticoId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_Transitos_Portico");
 
                     b.Navigation("Portico");
                 });

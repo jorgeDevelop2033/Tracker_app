@@ -20,11 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Tracker.Application\Tracker.Application.csproj" />
+    <Folder Include="Hubs\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Hubs\" />
+    <ProjectReference Include="..\Tracker.Infrastructure\Tracker.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

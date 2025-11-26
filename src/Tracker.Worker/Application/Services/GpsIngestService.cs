@@ -3,11 +3,11 @@
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
-using Tracker.Worker.Application.Dtos;
 using Tracker.Domain.Entities;
  
 
 using Tracker.Domain.Abstractions;
+using Tracker.Application.Dtos;
 
 namespace Tracker.Worker.Application.Services
 {

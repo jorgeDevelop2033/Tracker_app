@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Tracker.Infrastructure.DependencyInjection; // AddInfrastructure(...)
 using Tracker.Infrastructure.Persistence;         // TrackerDbContext
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ===== OpenAPI (.NET 9 minimal) =====
@@ -12,10 +13,9 @@ builder.Services.AddOpenApi();
 // Si tus migraciones viven en Tracker.Infrastructure, NO necesitas nada más.
 builder.Services.AddInfrastructure(builder.Configuration);
 
-
 // Si, en cambio, las migraciones viven en Tracker.Api, usa la sobrecarga (si la expusiste)
 // o re-registra explícitamente el DbContext con MigrationsAssembly("Tracker.Api").
- builder.Services.AddDbContext<TrackerDbContext>(opt =>
+builder.Services.AddDbContext<TrackerDbContext>(opt =>
  {
      var cs = builder.Configuration.GetConnectionString("TrackerDb");
      opt.UseSqlServer(cs, sql =>

@@ -1,5 +1,4 @@
-﻿using Tracker.Worker.Application.Dtos;
-
+﻿using Tracker.Application.Dtos; 
 namespace Tracker.Worker.Application.Services
 {
 
