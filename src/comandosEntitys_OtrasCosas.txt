@@ -1,3 +1,55 @@
-dotnet ef migrations add InitialCreate --project Tracker.Infrastructure --startup-project Tracker.API
+﻿dotnet ef migrations add InitialCreate --project Tracker.Infrastructure --startup-project Tracker.API
 
 dotnet ef database update --project Tracker.Infrastructure --startup-project Tracker.API
+
+
+
+
+
+SQL
+SELECT 
+    t.Id                             AS TransitoId,
+    p.Id                             AS PorticoId,
+    p.Codigo                         AS CodigoPortico,
+    p.Descripcion                    AS NombrePortico,
+    p.Autopista,
+    p.Sentido,
+    t.Utc                            AS FechaCruceUtc,
+
+    -- Ubicación del pórtico
+    p.Ubicacion                      AS UbicacionPortico,
+    p.Ubicacion.Lat                  AS PorticoLat,
+    p.Ubicacion.Long                 AS PorticoLon,
+
+    -- Ubicación del tránsito
+    t.Posicion                       AS UbicacionTransito,
+    t.Posicion.Lat                   AS TransitoLat,
+    t.Posicion.Long                  AS TransitoLon,
+
+    -- Datos del cruce
+    t.Banda,
+    t.PrecioCalculado,
+    t.Categoria                      AS CategoriaVehiculo,
+    t.ExactitudM,
+    t.Fuente,
+
+    -- 🔵 Precio C1 desde tabla de tarifas
+    tp.ValorFijo                     AS ValorFijoC1,
+    tp.ValorPorKm                    AS ValorPorKmC1,
+    tp.LongitudKmSnapshot            AS LongitudKmC1,
+    (tp.ValorFijo + (tp.ValorPorKm * COALESCE(tp.LongitudKmSnapshot, 0))) AS PrecioC1
+
+FROM tracker.Transitos AS t
+INNER JOIN tracker.Porticos AS p 
+        ON t.PorticoId = p.Id
+
+-- JOIN a tabla de tarifas usando: PorticoId + Categoria = 'C1'
+LEFT JOIN tracker.TarifasPortico AS tp
+        ON tp.PorticoId = t.PorticoId
+       AND tp.Categoria = 'C1'
+       AND (tp.VigenteHasta IS NULL OR t.Utc BETWEEN tp.VigenteDesde AND tp.VigenteHasta)
+WHERE 
+    t.Utc > '2025-11-23' 
+    AND p.Vigente = 1
+
+ORDER BY t.Utc;
