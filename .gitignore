@@ -53,3 +53,7 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 /src/.vs
+
+# macOS
+.DS_Store
+**/.DS_Store
