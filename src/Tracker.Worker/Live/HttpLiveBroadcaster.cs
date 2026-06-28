@@ -38,4 +38,22 @@ public sealed class HttpLiveBroadcaster : ILiveBroadcaster
             _log.LogWarning(ex, "Live broadcast falló para Device={Device}", pos.DeviceId);
         }
     }
+
+    public async Task BroadcastTransitoAsync(TransitoDetectadoDto transito, CancellationToken ct = default)
+    {
+        try
+        {
+            using var resp = await _http.PostAsJsonAsync("/internal/transito", transito, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _log.LogWarning("Transito broadcast respondió {Status} para Device={Device} Portico={Portico}",
+                    (int)resp.StatusCode, transito.DeviceId, transito.PorticoCodigo);
+            }
+        }
+        catch (Exception ex)
+        {
+            // El tránsito ya está persistido; la notificación en vivo es secundaria.
+            _log.LogWarning(ex, "Transito broadcast falló para Device={Device}", transito.DeviceId);
+        }
+    }
 }

@@ -3,9 +3,10 @@ using NetTopologySuite;
 using NetTopologySuite.Geometries;
 using Tracker.Domain.Porticos;                 // IPorticoRepository
 using Tracker.Domain.Transitos;               // ITransitoRepository
-using Tracker.Domain.Entities;                // Transito, Portico
+using Tracker.Domain.Tarifas;                 // ITarifaPorticoRepository
+using Tracker.Domain.Entities;                // Transito, Portico, TarifaPortico
 using Tracker.Domain.Abstractions;            // IUnitOfWork (ajusta si vive en otro ns)
-using Tracker.Domain.Abstractions.Filter;  
+using Tracker.Domain.Abstractions.Filter;
 using Tracker.Application.Dtos;
 using Tracker.Application.Services;
 using Tracker.Contracts.Enums;
@@ -16,6 +17,7 @@ namespace Tracker.Worker.Infrastructure.Services
     {
         private readonly IPorticoRepository _porticos;
         private readonly ITransitoRepository _transitos;
+        private readonly ITarifaPorticoRepository _tarifas;
         private readonly IUnitOfWork _uow; // si no usas UoW, reemplaza por save en capa superior
         private readonly GeometryFactory _gf = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
@@ -27,14 +29,16 @@ namespace Tracker.Worker.Infrastructure.Services
         public PorticoDetectionService(
             IPorticoRepository porticos,
             ITransitoRepository transitos,
+            ITarifaPorticoRepository tarifas,
             IUnitOfWork uow)
         {
             _porticos = porticos;
             _transitos = transitos;
+            _tarifas = tarifas;
             _uow = uow;
         }
 
-        public async Task DetectarYGuardarAsync(GpsEventDto evt, KafkaMetaDto meta, CancellationToken ct)
+        public async Task<TransitoDetectadoDto?> DetectarYGuardarAsync(GpsEventDto evt, KafkaMetaDto meta, CancellationToken ct)
         {
             // 1) Punto GPS (lon, lat) SRID 4326
             var punto = _gf.CreatePoint(new Coordinate(evt.Lon, evt.Lat));
@@ -48,7 +52,7 @@ namespace Tracker.Worker.Infrastructure.Services
                 ct: ct);
 
             if (candidatos.Count == 0)
-                return;
+                return null;
 
             // 3) Recorre candidatos; valida heading solo si hay corredor y viene heading
             foreach (var portico in candidatos)
@@ -70,7 +74,16 @@ namespace Tracker.Worker.Infrastructure.Services
                 if (recientes.Total > 0)
                     continue;
 
-                // 5) Guardar Transito con los campos que SÍ existen en tu entidad
+                // 5) Resolver tarifa vigente y calcular precio.
+                //    (Categoría/banda fijas por ahora; cuando exista clasificación de
+                //     vehículo y horario, derivarlas del evento/contexto.)
+                var categoria = VehicleCategory.C1;
+                var banda = Banda.TBP;
+
+                var tarifa = await _tarifas.GetVigenteAsync(portico.Id, categoria, banda, ts, ct);
+                var precio = CalcularPrecio(tarifa, portico.LongitudKm);
+
+                // 6) Guardar Transito con los campos que SÍ existen en tu entidad
                 var transito = new Transito
                 {
                     Id = Guid.NewGuid(),
@@ -78,20 +91,57 @@ namespace Tracker.Worker.Infrastructure.Services
                     Utc = ts,
                     Posicion = punto,
 
-                    Categoria = VehicleCategory.C1,   // o la que corresponda en tu enum
-
-                    Banda = Banda.TBP,                // o Banda.Diurna/Nocturna según tu modelo
+                    Categoria = categoria,
+                    Banda = banda,
 
                     // opcionales pero útiles si existen en tu entidad
                     ExactitudM = (evt.AccuracyM ?? 0),   // double
                     Fuente = "gps",                  // string (topic/fuente)
-                    PrecioCalculado = 0m                      // decimal; lo puedes recalcular luego
+                    PrecioCalculado = precio
                 };
 
                 await _transitos.AddAsync(transito, ct);
                 await _uow.SaveChangesAsync(ct); // si no usas UoW, mueve el commit donde corresponda
-                return; // registramos el primer match válido y salimos
+
+                // Registramos el primer match válido y devolvemos el resultado
+                // para notificarlo en vivo al dashboard.
+                return new TransitoDetectadoDto(
+                    DeviceId: evt.DeviceId,
+                    PorticoId: portico.Id,
+                    PorticoCodigo: portico.Codigo,
+                    Autopista: portico.Autopista,
+                    Precio: precio,
+                    Lat: evt.Lat,
+                    Lon: evt.Lon,
+                    Utc: ts);
             }
+
+            return null; // ningún candidato pasó los filtros
+        }
+
+        // --- cálculo de tarifa ---
+
+        /// <summary>
+        /// Precio del tránsito según la tarifa vigente:
+        ///  - si trae <see cref="TarifaPortico.ValorFijo"/>, ése es el precio;
+        ///  - si trae <see cref="TarifaPortico.ValorPorKm"/>, se multiplica por la
+        ///    longitud (snapshot de la tarifa o, en su defecto, la del pórtico);
+        ///  - si no hay tarifa vigente, 0 (el tránsito se registra igual).
+        /// </summary>
+        private static decimal CalcularPrecio(TarifaPortico? tarifa, decimal? longitudPortico)
+        {
+            if (tarifa is null) return 0m;
+
+            if (tarifa.ValorFijo is decimal fijo)
+                return fijo;
+
+            if (tarifa.ValorPorKm is decimal porKm)
+            {
+                var km = tarifa.LongitudKmSnapshot ?? longitudPortico ?? 0m;
+                return porKm * km;
+            }
+
+            return 0m;
         }
 
         // --- utilidades de heading ---

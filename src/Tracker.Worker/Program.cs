@@ -50,10 +50,14 @@ internal class Program
 
         // Broadcaster en vivo hacia Tracker.API (/internal/live). Best-effort.
         var liveApiBase = builder.Configuration["LiveApi:BaseUrl"] ?? "http://localhost:5000";
+        var internalKey = builder.Configuration["InternalApi:Key"] ?? "";
         builder.Services.AddHttpClient<ILiveBroadcaster, HttpLiveBroadcaster>(http =>
         {
             http.BaseAddress = new Uri(liveApiBase);
             http.Timeout = TimeSpan.FromSeconds(3);
+            // API key compartida que valida /internal/live en Tracker.API.
+            if (!string.IsNullOrEmpty(internalKey))
+                http.DefaultRequestHeaders.Add("X-Internal-Key", internalKey);
         });
 
         // Hosted Service

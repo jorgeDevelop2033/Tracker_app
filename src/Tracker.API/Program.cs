@@ -153,16 +153,38 @@ app.MapGet("/api/devices/{id}/track",
 // ===========================================================================
 //  Endpoint INTERNO: el Worker empuja aquí cada fix persistido y la API
 //  lo reemite por SignalR al grupo del dispositivo.
-//  TODO(seguridad): proteger con una API key / red privada antes de producción.
+//  Protegido con API key compartida (header X-Internal-Key). Solo el Worker
+//  la conoce; sin ella, 401. Configurar InternalApi:Key igual en API y Worker.
 // ===========================================================================
+var internalKey = builder.Configuration["InternalApi:Key"];
+
 app.MapPost("/internal/live",
-    async (LivePositionDto pos, IHubContext<LiveHub> hub, CancellationToken ct) =>
+    async (LivePositionDto pos, HttpContext http, IHubContext<LiveHub> hub, CancellationToken ct) =>
 {
+    // Validación de API key. Si no hay key configurada, se rechaza todo (fail-closed).
+    var provided = http.Request.Headers["X-Internal-Key"].ToString();
+    if (string.IsNullOrEmpty(internalKey) || provided != internalKey)
+        return Results.Unauthorized();
+
     await hub.Clients
         .Group(LiveHub.GroupFor(pos.DeviceId))
         .SendAsync("position", pos, ct);
     return Results.Accepted();
 }).WithName("PushLivePosition");
+
+// Tránsito (paso por pórtico) -> evento "transito" al grupo del dispositivo.
+app.MapPost("/internal/transito",
+    async (TransitoEventDto ev, HttpContext http, IHubContext<LiveHub> hub, CancellationToken ct) =>
+{
+    var provided = http.Request.Headers["X-Internal-Key"].ToString();
+    if (string.IsNullOrEmpty(internalKey) || provided != internalKey)
+        return Results.Unauthorized();
+
+    await hub.Clients
+        .Group(LiveHub.GroupFor(ev.DeviceId))
+        .SendAsync("transito", ev, ct);
+    return Results.Accepted();
+}).WithName("PushTransito");
 
 // ===== SignalR endpoint =====
 app.MapHub<LiveHub>("/liveHub");
