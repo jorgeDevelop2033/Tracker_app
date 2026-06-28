@@ -1,0 +1,12 @@
+# ---- build ----
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY src/ ./src/
+RUN dotnet restore src/Tracker.Worker/Tracker.Worker.csproj
+RUN dotnet publish src/Tracker.Worker/Tracker.Worker.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# ---- runtime ----
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "Tracker.Worker.dll"]

@@ -1,0 +1,107 @@
+# Despliegue de Tracker en el VPS (devsogu).
+# Patrón: apps sin puertos publicados (nginx enruta), red devsogu-net externa,
+# config por variables en .env. SQL Server es el compartido devsogu-sqlserver.
+#
+#   docker compose pull && docker compose up -d
+#
+services:
+  # ---------- Kafka (KRaft, sin Zookeeper) ----------
+  tracker-kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: tracker-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@tracker-kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://tracker-kafka:9092,CONTROLLER://tracker-kafka:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://tracker-kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: tracker-kafka-cluster-0001
+    volumes:
+      - /opt/devsogu/apps/tracker/kafka:/var/lib/kafka/data
+    networks:
+      - devsogu-net
+
+  # ---------- Schema Registry (Protobuf) ----------
+  tracker-schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    container_name: tracker-schema-registry
+    restart: unless-stopped
+    depends_on:
+      - tracker-kafka
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: tracker-schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://tracker-kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - devsogu-net
+
+  # ---------- Tracker.WebSocket (ingesta GPS del móvil) ----------
+  tracker-websocket:
+    image: ghcr.io/jorgedevelop2033/tracker-websocket:latest
+    container_name: tracker-websocket
+    restart: unless-stopped
+    depends_on:
+      - tracker-kafka
+      - tracker-schema-registry
+    env_file:
+      - .env
+    # Provisional (acceso por IP): el móvil emite a http://VPS:5137/trackerHub
+    ports:
+      - "5137:8080"
+    volumes:
+      - /opt/devsogu/apps/tracker/websocket/logs:/app/Logs
+    networks:
+      - devsogu-net
+
+  # ---------- Tracker.API (REST + SignalR LiveHub) ----------
+  tracker-api:
+    image: ghcr.io/jorgedevelop2033/tracker-api:latest
+    container_name: tracker-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    # Provisional (acceso por IP): el dashboard consume http://VPS:5080
+    ports:
+      - "5080:8080"
+    volumes:
+      - /opt/devsogu/apps/tracker/api/logs:/app/Logs
+    networks:
+      - devsogu-net
+
+  # ---------- Tracker Web (dashboard Angular, nginx) ----------
+  tracker-web:
+    image: ghcr.io/jorgedevelop2033/tracker-web:latest
+    container_name: tracker-web
+    restart: unless-stopped
+    depends_on:
+      - tracker-api
+    # Provisional (acceso por IP): dashboard en http://VPS:8090
+    ports:
+      - "8090:80"
+    networks:
+      - devsogu-net
+
+  # ---------- Tracker.Worker (consumer Kafka, sin HTTP) ----------
+  tracker-worker:
+    image: ghcr.io/jorgedevelop2033/tracker-worker:latest
+    container_name: tracker-worker
+    restart: unless-stopped
+    depends_on:
+      - tracker-kafka
+      - tracker-schema-registry
+    env_file:
+      - .env
+    networks:
+      - devsogu-net
+
+networks:
+  devsogu-net:
+    external: true

@@ -21,12 +21,14 @@ builder.Services.AddOpenApi();
 // ===== SignalR (broadcast en vivo al dashboard) =====
 builder.Services.AddSignalR();
 
-// ===== CORS (dashboard Angular en dev) =====
+// ===== CORS (dashboard Angular) =====
+// Orígenes configurables por Cors:AllowedOrigins (coma-separados) para producción.
+// Si no se configura, se usan los de desarrollo local.
 const string DashboardCors = "AllowDashboard";
+var corsOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "http://localhost:4200,https://localhost:4200")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 builder.Services.AddCors(o => o.AddPolicy(DashboardCors, p => p
-    .WithOrigins(
-        "http://localhost:4200",   // Angular dev server
-        "https://localhost:4200")
+    .WithOrigins(corsOrigins)
     .AllowAnyHeader()
     .AllowAnyMethod()
     .AllowCredentials())); // necesario para SignalR
