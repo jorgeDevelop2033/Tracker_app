@@ -8,6 +8,7 @@ using Tracker.Infrastructure.Persistence;
 using Tracker.Infrastructure.Repositories; 
 using Tracker.Worker.Application.Services;
 using Tracker.Worker.Infrastructure.Services;
+using Tracker.Worker.Live;
 
 internal class Program
 {
@@ -47,6 +48,14 @@ internal class Program
         builder.Services.AddScoped<IGpsIngestService, GpsIngestService>();
         builder.Services.AddScoped<IPorticoDetectionService, PorticoDetectionService>();
 
+        // Broadcaster en vivo hacia Tracker.API (/internal/live). Best-effort.
+        var liveApiBase = builder.Configuration["LiveApi:BaseUrl"] ?? "http://localhost:5000";
+        builder.Services.AddHttpClient<ILiveBroadcaster, HttpLiveBroadcaster>(http =>
+        {
+            http.BaseAddress = new Uri(liveApiBase);
+            http.Timeout = TimeSpan.FromSeconds(3);
+        });
+
         // Hosted Service
         builder.Services.AddHostedService<GpsConsumer>();
 
@@ -60,6 +69,10 @@ internal class Program
             var db = scope.ServiceProvider.GetRequiredService<TrackerDbContext>();
             await db.Database.EnsureCreatedAsync(); // o MigrateAsync()
             Console.WriteLine("🗄️  DB ready.");
+
+            // Catálogo de pórticos (datos reales OSM). Idempotente: upsert por OsmId.
+            var (insertados, actualizados) = await Tracker.Infrastructure.Seed.PorticoSeeder.SeedAsync(db);
+            Console.WriteLine($"🛣️  Pórticos seed -> insertados: {insertados}, actualizados: {actualizados}.");
         }
 
         await host.RunAsync();

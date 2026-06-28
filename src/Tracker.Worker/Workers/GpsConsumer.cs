@@ -136,6 +136,10 @@ public sealed class GpsConsumer : BackgroundService
                     // 🔎 Detección de paso por pórtico (usa tu servicio de detección)
                     var detector = scope.ServiceProvider.GetRequiredService<IPorticoDetectionService>();
                     await detector.DetectarYGuardarAsync(dto, meta, stoppingToken);
+
+                    // 📡 Broadcast en vivo al dashboard (best-effort: no rompe el consumo).
+                    var live = scope.ServiceProvider.GetRequiredService<Tracker.Worker.Live.ILiveBroadcaster>();
+                    await live.BroadcastAsync(dto, stoppingToken);
                 }
 
                 _log.LogInformation("📍 Guardado Device={Device} Lat={Lat} Lon={Lon} @ {Utc} (offset {Partition}:{Offset})",

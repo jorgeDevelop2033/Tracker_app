@@ -3,7 +3,11 @@
   <ItemGroup>
     <Folder Include="Interceptors\" />
     <Folder Include="Migrations\" />
-    <Folder Include="Seed\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Catálogo de pórticos (datos reales de OpenStreetMap) embebido en el assembly -->
+    <EmbeddedResource Include="Seed\porticos_seed.json" />
   </ItemGroup>
 
   <ItemGroup>

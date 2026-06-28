@@ -19,9 +19,16 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
 
     <!-- Hosting (Worker) -->
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
+
+    <!-- HttpClient factory (broadcast en vivo a Tracker.API) -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.3" />
 
     <!-- (Opcional) Rabbit si aún lo usas en este proyecto -->
     <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />

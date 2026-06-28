@@ -5,6 +5,7 @@ namespace Tracker.Domain.Entities
 {
     public class Portico : BaseEntity
     {
+        public long? OsmId { get; set; }                      // id estable en OpenStreetMap (clave natural del catálogo)
         public string Codigo { get; set; } = default!;        // P5, P2.1, etc.
         public string Autopista { get; set; } = default!;
         public string Sentido { get; set; } = default!;       // "Oriente - Poniente", etc.

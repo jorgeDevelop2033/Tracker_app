@@ -57,3 +57,6 @@ nunit-*.xml
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Claude Code: memoria interna del asistente (no es parte del proyecto)
+/memory/
