@@ -1,0 +1,13 @@
+services:
+  tracker-web:
+    image: ghcr.io/jorgedevelop2033/tracker-web:latest
+    container_name: tracker-web
+    restart: unless-stopped
+    ports:
+      - "8090:80"            # provisional por IP (dashboard)
+    networks:
+      - devsogu-net
+
+networks:
+  devsogu-net:
+    external: true

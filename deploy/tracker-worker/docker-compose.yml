@@ -1,0 +1,15 @@
+services:
+  tracker-worker:
+    image: ghcr.io/jorgedevelop2033/tracker-worker:latest
+    container_name: tracker-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - /opt/devsogu/apps/tracker-worker/logs:/app/Logs
+    networks:
+      - devsogu-net
+
+networks:
+  devsogu-net:
+    external: true

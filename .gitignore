@@ -60,3 +60,6 @@ nunit-*.xml
 
 # Claude Code: memoria interna del asistente (no es parte del proyecto)
 /memory/
+
+# Secrets de deploy (no versionar)
+deploy/**/.env

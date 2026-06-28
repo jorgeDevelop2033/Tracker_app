@@ -1,0 +1,17 @@
+services:
+  tracker-api:
+    image: ghcr.io/jorgedevelop2033/tracker-api:latest
+    container_name: tracker-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5080:8080"          # provisional por IP (dashboard consume aquí)
+    volumes:
+      - /opt/devsogu/apps/tracker-api/logs:/app/Logs
+    networks:
+      - devsogu-net
+
+networks:
+  devsogu-net:
+    external: true

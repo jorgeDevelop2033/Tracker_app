@@ -1,0 +1,17 @@
+services:
+  tracker-websocket:
+    image: ghcr.io/jorgedevelop2033/tracker-websocket:latest
+    container_name: tracker-websocket
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5137:8080"          # provisional por IP (el móvil emite aquí)
+    volumes:
+      - /opt/devsogu/apps/tracker-websocket/logs:/app/Logs
+    networks:
+      - devsogu-net
+
+networks:
+  devsogu-net:
+    external: true

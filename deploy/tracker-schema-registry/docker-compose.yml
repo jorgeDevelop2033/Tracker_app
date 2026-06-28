@@ -1,0 +1,15 @@
+services:
+  tracker-schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    container_name: tracker-schema-registry
+    restart: unless-stopped
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: tracker-schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://tracker-kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - devsogu-net
+
+networks:
+  devsogu-net:
+    external: true
