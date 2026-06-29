@@ -7,6 +7,12 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: tracker-schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://tracker-kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      # --- Performance / memoria ---
+      # Sin heap fijo, esta JVM también reclama ~25% del host. 256M sobra para cachear esquemas.
+      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms128m -Xmx200m"
+    mem_limit: 350m
+    mem_reservation: 200m
+    cpus: 0.5
     networks:
       - devsogu-net
 

@@ -5,8 +5,14 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # Workstation GC + techo de heap: evita que .NET vea los 8 GB del host y se vuelva glotón.
+      DOTNET_gcServer: "0"
     volumes:
       - /opt/devsogu/apps/tracker-worker/logs:/app/Logs
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
     networks:
       - devsogu-net
 

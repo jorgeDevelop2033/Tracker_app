@@ -17,8 +17,23 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       CLUSTER_ID: tracker-kafka-cluster-0001
+      # --- Performance / memoria (VPS 8 GB compartida) ---
+      # Sin esto la JVM reclama ~25% de la RAM del host (≈2 GB) y mata la VPS.
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"
+      # Throughput moderado de GPS: pocos hilos, sin sobre-provisionar.
+      KAFKA_NUM_NETWORK_THREADS: 2
+      KAFKA_NUM_IO_THREADS: 2
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_BACKGROUND_THREADS: 4
+      # Retención corta para no llenar disco ni page-cache (24 h, 512 MB/topic).
+      KAFKA_LOG_RETENTION_HOURS: 24
+      KAFKA_LOG_RETENTION_BYTES: 536870912
+      KAFKA_LOG_SEGMENT_BYTES: 134217728
     volumes:
       - /opt/devsogu/apps/tracker-kafka/data:/var/lib/kafka/data
+    mem_limit: 700m
+    mem_reservation: 400m
+    cpus: 1.0
     networks:
       - devsogu-net
 

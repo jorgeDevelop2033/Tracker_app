@@ -5,6 +5,9 @@ services:
     restart: unless-stopped
     ports:
       - "8090:80"            # provisional por IP (dashboard)
+    mem_limit: 128m
+    mem_reservation: 32m
+    cpus: 0.25
     networks:
       - devsogu-net
 

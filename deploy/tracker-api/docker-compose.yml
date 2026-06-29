@@ -5,10 +5,15 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      DOTNET_gcServer: "0"
     ports:
       - "5080:8080"          # provisional por IP (dashboard consume aquí)
     volumes:
       - /opt/devsogu/apps/tracker-api/logs:/app/Logs
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
     networks:
       - devsogu-net
 
