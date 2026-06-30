@@ -19,6 +19,10 @@ var builder = WebApplication.CreateBuilder(args);
 // ===== OpenAPI (.NET 9 minimal) =====
 builder.Services.AddOpenApi();
 
+// Enums como string en el JSON de los minimal endpoints (acepta "C1","TBP","Laboral").
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+
 // ===== SignalR (broadcast en vivo al dashboard) =====
 builder.Services.AddSignalR();
 

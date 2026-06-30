@@ -26,16 +26,17 @@ namespace Tracker.Infrastructure.Persistence.Configurations
             b.Property(t => t.DeviceId)
              .HasMaxLength(128);
 
-            // Enums → int, con default en BD
+            // Enums → int. SIN HasDefaultValue: el detector siempre asigna Banda
+            // y Categoria explícitamente. Con un default en BD, EF trata el valor
+            // CLR 0 (TBFP) como "no asignado" y lo reemplaza por el default,
+            // guardando TBP en tránsitos fuera de punta aunque el precio sea TBFP.
             b.Property(t => t.Banda)
              .IsRequired()
-             .HasConversion<int>()
-             .HasDefaultValue(Banda.TBP);
+             .HasConversion<int>();
 
             b.Property(t => t.Categoria)
              .IsRequired()
-             .HasConversion<int>()
-             .HasDefaultValue(VehicleCategory.C1);
+             .HasConversion<int>();
 
             b.Property(t => t.PrecioCalculado)
              .IsRequired()
