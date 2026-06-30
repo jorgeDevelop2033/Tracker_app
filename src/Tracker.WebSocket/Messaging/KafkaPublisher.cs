@@ -66,13 +66,15 @@ namespace Tracker.WebSocket.Messaging
         public async Task PublishAsync<T>(string topic, string key, T message) where T : class, IMessage<T>, new()
         {
             var prod = GetProducer<T>();
+            _log.LogInformation("Publicando a {Topic} (brokers={Brokers}, sr={Sr})",
+                topic, _cfg["Kafka:BootstrapServers"], _cfg["SchemaRegistry:Url"]);
             var dr = await prod.ProduceAsync(topic, new Message<string, T>
             {
                 Key = key,
                 Value = message,
                 Timestamp = new Timestamp(DateTime.UtcNow)
             });
-            // opcional log: _log.LogInformation("→ {Topic}[{P}]@{O}", dr.Topic, dr.Partition, dr.Offset);
+            _log.LogInformation("→ entregado {Topic}[{P}]@{O}", dr.Topic, dr.Partition.Value, dr.Offset.Value);
         }
 
         public void Dispose()
