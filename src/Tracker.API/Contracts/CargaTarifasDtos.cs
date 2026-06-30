@@ -28,3 +28,6 @@ public sealed record BandaHorarioBulkRow(
     string HoraFin,
     Banda Banda,
     string? Autopista = null);  // si viene, solo aplica a pórticos de esa autopista
+
+/// <summary>Re-etiqueta la autopista de un pórtico identificado por su OsmId.</summary>
+public sealed record PorticoReetiquetaRow(long OsmId, string Autopista);

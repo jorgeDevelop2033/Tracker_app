@@ -303,6 +303,25 @@ app.MapDelete("/api/bandas-horario/{codigo}",
     return Results.Ok(new { borradas });
 }).WithName("DeleteBandasHorario");
 
+// Re-etiqueta la Autopista de pórticos por OsmId (limpieza del catálogo sin re-seed).
+// Body: [{ "osmId": 123, "autopista": "Costanera Norte" }, ...]
+app.MapPost("/api/porticos/reetiquetar",
+    async (PorticoReetiquetaRow[] filas, HttpContext http, TrackerDbContext db, CancellationToken ct) =>
+{
+    if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
+    if (filas.Length == 0) return Results.BadRequest(new { error = "sin filas" });
+
+    int actualizados = 0; var noEncontrados = new List<long>();
+    foreach (var f in filas)
+    {
+        var n = await db.Porticos
+            .Where(p => p.OsmId == f.OsmId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Autopista, f.Autopista), ct);
+        if (n == 0) noEncontrados.Add(f.OsmId); else actualizados += n;
+    }
+    return Results.Ok(new { actualizados, noEncontrados });
+}).WithName("ReetiquetarPorticos");
+
 // ===========================================================================
 //  Gasto del dispositivo: totales (día/semana/mes) y detalle de tránsitos.
 // ===========================================================================

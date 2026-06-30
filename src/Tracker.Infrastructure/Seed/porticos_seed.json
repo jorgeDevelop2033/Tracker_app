@@ -2,7 +2,7 @@
   {
     "OsmId": 6508970705,
     "Codigo": "P09",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Costanera Norte",
     "Sentido": "Ruta 68 → Américo Vespucio Poniente",
     "Descripcion": "P09 Ruta 68 - Américo Vespucio Poniente",
     "CallesRef": "Ruta 68 / Américo Vespucio Poniente",
@@ -13,7 +13,7 @@
   {
     "OsmId": 6508970707,
     "Codigo": "P09",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Costanera Norte",
     "Sentido": "Américo Vespucio Poniente → Ruta 68",
     "Descripcion": "P09 Américo Vespucio Poniente - Ruta 68",
     "CallesRef": "Américo Vespucio Poniente / Ruta 68",
@@ -24,7 +24,7 @@
   {
     "OsmId": 6509152132,
     "Codigo": "P6.2",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Costanera Norte",
     "Sentido": "Américo Vespucio Poniente → Petersen",
     "Descripcion": "P6.2 Américo Vespucio Poniente - Petersen",
     "CallesRef": "Américo Vespucio Poniente / Petersen",
@@ -35,7 +35,7 @@
   {
     "OsmId": 6509152133,
     "Codigo": "P6.2",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Costanera Norte",
     "Sentido": "Petersen → Américo Vespucio Poniente",
     "Descripcion": "P6.2 Petersen - Américo Vespucio Poniente",
     "CallesRef": "Petersen / Américo Vespucio Poniente",
@@ -46,7 +46,7 @@
   {
     "OsmId": 6116324745,
     "Codigo": "PA21",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Américo Vespucio → Carlos Valdovinos",
     "Descripcion": "PA21 - Américo Vespucio - Carlos Valdovinos",
     "CallesRef": "Américo Vespucio / Carlos Valdovinos",
@@ -57,7 +57,7 @@
   {
     "OsmId": 6116324746,
     "Codigo": "PA22",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Carlos Valdovinos → Américo Vespucio",
     "Descripcion": "PA22 - Carlos Valdovinos - Américo Vespucio",
     "CallesRef": "Carlos Valdovinos / Américo Vespucio",
@@ -68,7 +68,7 @@
   {
     "OsmId": 6116371334,
     "Codigo": "PA30",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Américo Vespucio → Departamental",
     "Descripcion": "PA30 - Américo Vespucio - Departamental",
     "CallesRef": "Américo Vespucio / Departamental",
@@ -79,7 +79,7 @@
   {
     "OsmId": 2490264555,
     "Codigo": "PA7",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Las Acacias → Américo Vespucio",
     "Descripcion": "PA7 - Las Acacias - Américo Vespucio",
     "CallesRef": "Las Acacias / Américo Vespucio",
@@ -90,7 +90,7 @@
   {
     "OsmId": 2490264558,
     "Codigo": "PA8",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Américo Vespucio → Las Acacias",
     "Descripcion": "PA8 - Américo Vespucio - Las Acacias",
     "CallesRef": "Américo Vespucio / Las Acacias",
@@ -101,7 +101,7 @@
   {
     "OsmId": 6116371333,
     "Codigo": "PA9",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Departamental → Américo Vespucio",
     "Descripcion": "PA9 - Departamental - Américo Vespucio",
     "CallesRef": "Departamental / Américo Vespucio",
@@ -112,7 +112,7 @@
   {
     "OsmId": 454636152,
     "Codigo": "T1",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Bidireccional",
     "Descripcion": "Américo Vespucio",
     "CallesRef": null,
@@ -123,7 +123,7 @@
   {
     "OsmId": 454636182,
     "Codigo": "T1",
-    "Autopista": "Americo Vespucio",
+    "Autopista": "Autopista Central",
     "Sentido": "Bidireccional",
     "Descripcion": "Américo Vespucio",
     "CallesRef": null,
@@ -134,7 +134,7 @@
   {
     "OsmId": 6117130674,
     "Codigo": "P8",
-    "Autopista": "Americo Vespucio Norte",
+    "Autopista": "Vespucio Norte",
     "Sentido": "Ruta 5 Norte → Condell",
     "Descripcion": "P8 Ruta 5 Norte - Condell",
     "CallesRef": "Ruta 5 Norte / Condell",
@@ -145,7 +145,7 @@
   {
     "OsmId": 288057884,
     "Codigo": "PA16",
-    "Autopista": "Americo Vespucio Norte",
+    "Autopista": "Autopista Central",
     "Sentido": "Río Mapocho → 14 de la Fama - Américo Vespucio Norte",
     "Descripcion": "PA16 - Río Mapocho - 14 de la Fama - Américo Vespucio Norte",
     "CallesRef": "Río Mapocho / 14 de la Fama - Américo Vespucio Norte",
@@ -156,7 +156,7 @@
   {
     "OsmId": 2077631034,
     "Codigo": "PA17",
-    "Autopista": "Americo Vespucio Norte",
+    "Autopista": "Autopista Central",
     "Sentido": "14 de la Fama → Américo Vespucio Norte",
     "Descripcion": "PA17 - 14 de la Fama - Américo Vespucio Norte",
     "CallesRef": "14 de la Fama / Américo Vespucio Norte",
@@ -167,7 +167,7 @@
   {
     "OsmId": 6114138859,
     "Codigo": "PA18",
-    "Autopista": "Americo Vespucio Norte",
+    "Autopista": "Autopista Central",
     "Sentido": "Américo Vespucio Norte → 14 de la Fama",
     "Descripcion": "PA18 - Américo Vespucio Norte - 14 de la Fama",
     "CallesRef": "Américo Vespucio Norte / 14 de la Fama",
@@ -178,7 +178,7 @@
   {
     "OsmId": 6114138863,
     "Codigo": "PA19",
-    "Autopista": "Americo Vespucio Sur",
+    "Autopista": "Autopista Central",
     "Sentido": "Ruta 5 Sur → Américo Vespucio",
     "Descripcion": "PA19 - Ruta 5 Sur - Américo Vespucio",
     "CallesRef": "Ruta 5 Sur / Américo Vespucio",
@@ -189,7 +189,7 @@
   {
     "OsmId": 5145133779,
     "Codigo": "PA20",
-    "Autopista": "Americo Vespucio Sur",
+    "Autopista": "Autopista Central",
     "Sentido": "Américo Vespucio → Ruta 5 Sur",
     "Descripcion": "PA20 - Américo Vespucio - Ruta 5 Sur",
     "CallesRef": "Américo Vespucio / Ruta 5 Sur",
@@ -200,7 +200,7 @@
   {
     "OsmId": 4455202302,
     "Codigo": "P1",
-    "Autopista": "Autopista del Sol (Ruta 78)",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Ruta 78 → Santa Elena",
     "Descripcion": "P1 Ruta 78 - Santa Elena",
     "CallesRef": "Ruta 78 / Santa Elena",
@@ -211,7 +211,7 @@
   {
     "OsmId": 6114181658,
     "Codigo": "P1.1",
-    "Autopista": "Autopista del Sol (Ruta 78)",
+    "Autopista": "Autopista del Sol",
     "Sentido": "General Velásquez → Ruta 78",
     "Descripcion": "P1.1 General Velásquez - Ruta 78",
     "CallesRef": "General Velásquez / Ruta 78",
@@ -222,7 +222,7 @@
   {
     "OsmId": 6114181656,
     "Codigo": "P1.3",
-    "Autopista": "Autopista del Sol (Ruta 78)",
+    "Autopista": "Autopista del Sol",
     "Sentido": "2a Transversal → Camino a Melipilla",
     "Descripcion": "P1.3 2a Transversal - Camino a Melipilla",
     "CallesRef": "2a Transversal / Camino a Melipilla",
@@ -233,7 +233,7 @@
   {
     "OsmId": 5521500757,
     "Codigo": "P17",
-    "Autopista": "Autopista del Sol (Ruta 78)",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Los Mares → Ruta 78",
     "Descripcion": "P17 Los Mares - Ruta 78",
     "CallesRef": "Los Mares / Ruta 78",
@@ -244,7 +244,7 @@
   {
     "OsmId": 6116236796,
     "Codigo": "EV",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Bidireccional",
     "Descripcion": "EV Entrada Vivaceta",
     "CallesRef": null,
@@ -277,7 +277,7 @@
   {
     "OsmId": 13743054369,
     "Codigo": "OSM13743054369",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Troncal Río Maipo",
     "CallesRef": null,
@@ -288,7 +288,7 @@
   {
     "OsmId": 13743054399,
     "Codigo": "OSM13743054399",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Troncal Río Maipo",
     "CallesRef": null,
@@ -310,7 +310,7 @@
   {
     "OsmId": 5516568781,
     "Codigo": "OSM5516568781",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Tocornal Poniente",
     "CallesRef": null,
@@ -321,7 +321,7 @@
   {
     "OsmId": 6316909495,
     "Codigo": "OSM6316909495",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Peaje Acceso Vial AMB",
     "CallesRef": null,
@@ -332,7 +332,7 @@
   {
     "OsmId": 6479098231,
     "Codigo": "OSM6479098231",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Peaje Gabriela Poniente",
     "CallesRef": null,
@@ -343,7 +343,7 @@
   {
     "OsmId": 6479098244,
     "Codigo": "OSM6479098244",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Peaje Gabriela Oriente",
     "CallesRef": null,
@@ -354,7 +354,7 @@
   {
     "OsmId": 6518635362,
     "Codigo": "OSM6518635362",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Tocornal Oriente",
     "CallesRef": null,
@@ -420,7 +420,7 @@
   {
     "OsmId": 9645902676,
     "Codigo": "OSM9645902676",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Peaje Las Canteras",
     "CallesRef": null,
@@ -431,7 +431,7 @@
   {
     "OsmId": 9645902677,
     "Codigo": "OSM9645902677",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Peaje Las Canteras",
     "CallesRef": null,
@@ -475,7 +475,7 @@
   {
     "OsmId": 253434286,
     "Codigo": "P00",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Puente Padre Arteaga → Puente San Francisco",
     "Descripcion": "P00 Puente Padre Arteaga - Puente San Francisco",
     "CallesRef": "Puente Padre Arteaga / Puente San Francisco",
@@ -486,7 +486,7 @@
   {
     "OsmId": 9626675441,
     "Codigo": "P00",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Puente San Francsico → Puente Padre Arteaga",
     "Descripcion": "P00 Puente San Francsico - Puente Padre Arteaga",
     "CallesRef": "Puente San Francsico / Puente Padre Arteaga",
@@ -497,7 +497,7 @@
   {
     "OsmId": 2951662070,
     "Codigo": "P01",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Puente La Dehesa → Gran Vía",
     "Descripcion": "P01 Puente La Dehesa - Gran Vía",
     "CallesRef": "Puente La Dehesa / Gran Vía",
@@ -508,7 +508,7 @@
   {
     "OsmId": 6117141442,
     "Codigo": "P01",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Gran Vía → Puente La Dehesa",
     "Descripcion": "P01 Gran Vía - Puente La Dehesa",
     "CallesRef": "Gran Vía / Puente La Dehesa",
@@ -519,7 +519,7 @@
   {
     "OsmId": 9638303963,
     "Codigo": "P03",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Torres Tajamar → Puente Lo Saldes",
     "Descripcion": "P03 Torres Tajamar - Puente Lo Saldes",
     "CallesRef": "Torres Tajamar / Puente Lo Saldes",
@@ -530,7 +530,7 @@
   {
     "OsmId": 9638303965,
     "Codigo": "P03",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Puente Lo Saldes → Vivaceta",
     "Descripcion": "P03 Puente Lo Saldes - Vivaceta",
     "CallesRef": "Puente Lo Saldes / Vivaceta",
@@ -541,7 +541,7 @@
   {
     "OsmId": 6116236797,
     "Codigo": "P04",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Vivaceta → Torres Tajamar",
     "Descripcion": "P04 Vivaceta - Torres Tajamar",
     "CallesRef": "Vivaceta / Torres Tajamar",
@@ -552,7 +552,7 @@
   {
     "OsmId": 2612857718,
     "Codigo": "P05",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Vivaceta → Carrascal",
     "Descripcion": "P05 Vivaceta - Carrascal",
     "CallesRef": "Vivaceta / Carrascal",
@@ -563,7 +563,7 @@
   {
     "OsmId": 5572951836,
     "Codigo": "P05",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Carrascal → Vivaceta",
     "Descripcion": "P05 Carrascal - Vivaceta",
     "CallesRef": "Carrascal / Vivaceta",
@@ -574,7 +574,7 @@
   {
     "OsmId": 2486323474,
     "Codigo": "P07",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Estoril → Las Tranqueras",
     "Descripcion": "P07 Estoril - Las Tranqueras",
     "CallesRef": "Estoril / Las Tranqueras",
@@ -585,7 +585,7 @@
   {
     "OsmId": 6116282528,
     "Codigo": "P07",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Las Tranqueras → Estoril",
     "Descripcion": "P07 Las Tranqueras - Estoril",
     "CallesRef": "Las Tranqueras / Estoril",
@@ -596,7 +596,7 @@
   {
     "OsmId": 7857987358,
     "Codigo": "P101",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -607,7 +607,7 @@
   {
     "OsmId": 9193322368,
     "Codigo": "P103",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -618,7 +618,7 @@
   {
     "OsmId": 7858008986,
     "Codigo": "P104",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -629,7 +629,7 @@
   {
     "OsmId": 7857987371,
     "Codigo": "P108",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -640,7 +640,7 @@
   {
     "OsmId": 6876949652,
     "Codigo": "P110",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -651,7 +651,7 @@
   {
     "OsmId": 6117130669,
     "Codigo": "P12",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Norte",
     "Sentido": "Pedro Fontova → Guanaco",
     "Descripcion": "P12 Pedro Fontova - Guanaco",
     "CallesRef": "Pedro Fontova / Guanaco",
@@ -662,7 +662,7 @@
   {
     "OsmId": 6117130670,
     "Codigo": "P13",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Norte",
     "Sentido": "Recoleta → Pedro Fontova",
     "Descripcion": "P13 Recoleta - Pedro Fontova",
     "CallesRef": "Recoleta / Pedro Fontova",
@@ -673,7 +673,7 @@
   {
     "OsmId": 13881069,
     "Codigo": "P14",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Guanaco → El Salto",
     "Descripcion": "P14 Guanaco - El Salto",
     "CallesRef": "Guanaco / El Salto",
@@ -684,7 +684,7 @@
   {
     "OsmId": 6117130668,
     "Codigo": "P15",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "El Salto → Recoleta",
     "Descripcion": "P15 El Salto - Recoleta",
     "CallesRef": "El Salto / Recoleta",
@@ -717,7 +717,7 @@
   {
     "OsmId": 2948768935,
     "Codigo": "P2.2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Puente Lo Saldes → Centenario",
     "Descripcion": "P2.2 Puente Lo Saldes - Centenario",
     "CallesRef": "Puente Lo Saldes / Centenario",
@@ -728,7 +728,7 @@
   {
     "OsmId": 6117130667,
     "Codigo": "P2.2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Centenario → Puente Lo Saldes",
     "Descripcion": "P2.2 Centenario - Puente Lo Saldes",
     "CallesRef": "Centenario / Puente Lo Saldes",
@@ -739,7 +739,7 @@
   {
     "OsmId": 6876949534,
     "Codigo": "P201",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -750,7 +750,7 @@
   {
     "OsmId": 6876949435,
     "Codigo": "P203",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -761,7 +761,7 @@
   {
     "OsmId": 7857987382,
     "Codigo": "P205",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -772,7 +772,7 @@
   {
     "OsmId": 7858008992,
     "Codigo": "P209",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -783,7 +783,7 @@
   {
     "OsmId": 7857987360,
     "Codigo": "P210",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -794,7 +794,7 @@
   {
     "OsmId": 9193205577,
     "Codigo": "P211",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -805,7 +805,7 @@
   {
     "OsmId": 6876949475,
     "Codigo": "P212",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -816,7 +816,7 @@
   {
     "OsmId": 6114181670,
     "Codigo": "P3.1",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Santa Rosa → Gran Avenida",
     "Descripcion": "P3.1 Santa Rosa - Gran Avenida",
     "CallesRef": "Santa Rosa / Gran Avenida",
@@ -827,7 +827,7 @@
   {
     "OsmId": 6114181668,
     "Codigo": "P3.2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Gran Avenida → Santa Rosa",
     "Descripcion": "P3.2 Gran Avenida - Santa Rosa",
     "CallesRef": "Gran Avenida / Santa Rosa",
@@ -838,7 +838,7 @@
   {
     "OsmId": 9624207147,
     "Codigo": "P4.1",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Sur",
     "Sentido": "Gnmo. de Alderete → Santa Julia",
     "Descripcion": "P4.1 Gnmo. de Alderete - Santa Julia",
     "CallesRef": "Gnmo. de Alderete / Santa Julia",
@@ -849,7 +849,7 @@
   {
     "OsmId": 6114166014,
     "Codigo": "P4.2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Sur",
     "Sentido": "Gnmo. de Alderete → Vicuña Mackena",
     "Descripcion": "P4.2 Gnmo. de Alderete - Vicuña Mackena",
     "CallesRef": "Gnmo. de Alderete / Vicuña Mackena",
@@ -860,7 +860,7 @@
   {
     "OsmId": 6114166012,
     "Codigo": "P4.3",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Sur",
     "Sentido": "Coronel → Santa Julia",
     "Descripcion": "P4.3 Coronel - Santa Julia",
     "CallesRef": "Coronel / Santa Julia",
@@ -871,7 +871,7 @@
   {
     "OsmId": 6116872054,
     "Codigo": "P5.1",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Sur",
     "Sentido": "Grecia → Quilín",
     "Descripcion": "P5.1 Grecia - Quilín",
     "CallesRef": "Grecia / Quilín",
@@ -882,7 +882,7 @@
   {
     "OsmId": 6116872055,
     "Codigo": "P5.2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Sur",
     "Sentido": "Quilín → Grecia",
     "Descripcion": "P5.2 Quilín - Grecia",
     "CallesRef": "Quilín / Grecia",
@@ -893,7 +893,7 @@
   {
     "OsmId": 6116872050,
     "Codigo": "P5.3",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Sur",
     "Sentido": "Quilín → Las Torres",
     "Descripcion": "P5.3 Quilín - Las Torres",
     "CallesRef": "Quilín / Las Torres",
@@ -904,7 +904,7 @@
   {
     "OsmId": 6116872049,
     "Codigo": "P5.4",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Vespucio Sur",
     "Sentido": "Las Torres → Quilín",
     "Descripcion": "P5.4 Las Torres - Quilín",
     "CallesRef": "Las Torres / Quilín",
@@ -915,7 +915,7 @@
   {
     "OsmId": 9641637788,
     "Codigo": "P6.1",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Petersen → Carrascal",
     "Descripcion": "P6.1 Petersen - Carrascal",
     "CallesRef": "Petersen / Carrascal",
@@ -926,7 +926,7 @@
   {
     "OsmId": 9641637789,
     "Codigo": "P6.1",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "Carrascal → Petersen",
     "Descripcion": "P6.1 Carrascal - Petersen",
     "CallesRef": "Carrascal / Petersen",
@@ -937,7 +937,7 @@
   {
     "OsmId": 5568374819,
     "Codigo": "P60",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Pórtico 60 Lateral",
     "CallesRef": null,
@@ -948,7 +948,7 @@
   {
     "OsmId": 5568374798,
     "Codigo": "P61",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Pórtico 61 Lateral",
     "CallesRef": null,
@@ -959,7 +959,7 @@
   {
     "OsmId": 4999156428,
     "Codigo": "P62",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Pórtico 62 Troncal Poniente",
     "CallesRef": null,
@@ -970,7 +970,7 @@
   {
     "OsmId": 4999156427,
     "Codigo": "P63",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Pórtico 63 Troncal Poniente",
     "CallesRef": null,
@@ -981,7 +981,7 @@
   {
     "OsmId": 382079878,
     "Codigo": "P64",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Pórtico 64 Troncal Oriente",
     "CallesRef": null,
@@ -992,7 +992,7 @@
   {
     "OsmId": 4999156848,
     "Codigo": "P65",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Ruta 5 (interurbano)",
     "Sentido": "Bidireccional",
     "Descripcion": "Pórtico 65 Troncal Oriente",
     "CallesRef": null,
@@ -1014,7 +1014,7 @@
   {
     "OsmId": 9844306687,
     "Codigo": "PA1",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "La Capilla → Los Guindos",
     "Descripcion": "PA1 - La Capilla - Los Guindos",
     "CallesRef": "La Capilla / Los Guindos",
@@ -1025,7 +1025,7 @@
   {
     "OsmId": 6116371328,
     "Codigo": "PA10",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Departamental → Carlos Valdovinos",
     "Descripcion": "PA10 - Departamental - Carlos Valdovinos",
     "CallesRef": "Departamental / Carlos Valdovinos",
@@ -1036,7 +1036,7 @@
   {
     "OsmId": 6116371330,
     "Codigo": "PA11",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Carlos Valdovinos → Departamental",
     "Descripcion": "PA11 - Carlos Valdovinos - Departamental",
     "CallesRef": "Carlos Valdovinos / Departamental",
@@ -1047,7 +1047,7 @@
   {
     "OsmId": 6114084134,
     "Codigo": "PA12",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Alameda → Carlos Valdovinos",
     "Descripcion": "PA12 - Alameda - Carlos Valdovinos",
     "CallesRef": "Alameda / Carlos Valdovinos",
@@ -1058,7 +1058,7 @@
   {
     "OsmId": 6114084135,
     "Codigo": "PA13",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Alameda → Río Mapocho",
     "Descripcion": "PA13 - Alameda - Río Mapocho",
     "CallesRef": "Alameda / Río Mapocho",
@@ -1069,7 +1069,7 @@
   {
     "OsmId": 6114084136,
     "Codigo": "PA14",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Río Mapocho → Alameda",
     "Descripcion": "PA14 - Río Mapocho - Alameda",
     "CallesRef": "Río Mapocho / Alameda",
@@ -1080,7 +1080,7 @@
   {
     "OsmId": 6116236799,
     "Codigo": "PA15",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "14 de la Fama → Río Mapocho",
     "Descripcion": "PA15 - 14 de la Fama - Río Mapocho",
     "CallesRef": "14 de la Fama / Río Mapocho",
@@ -1091,7 +1091,7 @@
   {
     "OsmId": 335626019,
     "Codigo": "PA2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Los Guindos → La Capilla",
     "Descripcion": "PA2 - Los Guindos - La Capilla",
     "CallesRef": "Los Guindos / La Capilla",
@@ -1102,7 +1102,7 @@
   {
     "OsmId": 6116324740,
     "Codigo": "PA23",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Carlos Valdovinos → Alameda",
     "Descripcion": "PA23 - Carlos Valdovinos - Alameda",
     "CallesRef": "Carlos Valdovinos / Alameda",
@@ -1113,7 +1113,7 @@
   {
     "OsmId": 6116324742,
     "Codigo": "PA24",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Alameda → Carlos Valdovinos",
     "Descripcion": "PA24 - Alameda - Carlos Valdovinos",
     "CallesRef": "Alameda / Carlos Valdovinos",
@@ -1124,7 +1124,7 @@
   {
     "OsmId": 6116337640,
     "Codigo": "PA25",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Alameda → Río Mapocho",
     "Descripcion": "PA25 - Alameda - Río Mapocho",
     "CallesRef": "Alameda / Río Mapocho",
@@ -1135,7 +1135,7 @@
   {
     "OsmId": 6116337642,
     "Codigo": "PA26",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Río Mapocho → Alameda",
     "Descripcion": "PA26 - Río Mapocho - Alameda",
     "CallesRef": "Río Mapocho / Alameda",
@@ -1146,7 +1146,7 @@
   {
     "OsmId": 6114286297,
     "Codigo": "PA3",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "La Capilla → Colón",
     "Descripcion": "PA3 - La Capilla - Colón",
     "CallesRef": "La Capilla / Colón",
@@ -1157,7 +1157,7 @@
   {
     "OsmId": 4399757534,
     "Codigo": "PA31",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Carlos Valdovinos → Alameda",
     "Descripcion": "PA31 - Carlos Valdovinos - Alameda",
     "CallesRef": "Carlos Valdovinos / Alameda",
@@ -1168,7 +1168,7 @@
   {
     "OsmId": 157288624,
     "Codigo": "PA32",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Las Acacias → Lo Blanco",
     "Descripcion": "PA32 - Las Acacias - Lo Blanco",
     "CallesRef": "Las Acacias / Lo Blanco",
@@ -1179,7 +1179,7 @@
   {
     "OsmId": 9566814796,
     "Codigo": "PA37",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Colón → Calera de Tango",
     "Descripcion": "PA37 - Colón - Calera de Tango",
     "CallesRef": "Colón / Calera de Tango",
@@ -1190,7 +1190,7 @@
   {
     "OsmId": 6114286295,
     "Codigo": "PA4",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Calera de Tango → La Capilla",
     "Descripcion": "PA4 - Calera de Tango - La Capilla",
     "CallesRef": "Calera de Tango / La Capilla",
@@ -1201,7 +1201,7 @@
   {
     "OsmId": 6114291823,
     "Codigo": "PA5",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Colón → Las Acacias",
     "Descripcion": "PA5 - Colón - Las Acacias",
     "CallesRef": "Colón / Las Acacias",
@@ -1212,7 +1212,7 @@
   {
     "OsmId": 6114291826,
     "Codigo": "PA6",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista Central",
     "Sentido": "Lo Blanco → Colón",
     "Descripcion": "PA6 - Lo Blanco - Colón",
     "CallesRef": "Lo Blanco / Colón",
@@ -1223,7 +1223,7 @@
   {
     "OsmId": 6114221889,
     "Codigo": "PC 101",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "P101 Salto → Kennedy",
     "Descripcion": "P101 Salto - Kennedy",
     "CallesRef": "P101 Salto / Kennedy",
@@ -1234,7 +1234,7 @@
   {
     "OsmId": 636752664,
     "Codigo": "PC 102",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Costanera Norte",
     "Sentido": "P102 Kennedy → El salto",
     "Descripcion": "P102 Kennedy - El salto",
     "CallesRef": "P102 Kennedy / El salto",
@@ -1256,7 +1256,7 @@
   {
     "OsmId": 12511401260,
     "Codigo": "T2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Rinconada",
     "CallesRef": null,
@@ -1267,7 +1267,7 @@
   {
     "OsmId": 12511401261,
     "Codigo": "T2",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Rinconada",
     "CallesRef": null,
@@ -1278,7 +1278,7 @@
   {
     "OsmId": 5532689550,
     "Codigo": "T3",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Padre Hurtado",
     "CallesRef": null,
@@ -1289,7 +1289,7 @@
   {
     "OsmId": 12511401267,
     "Codigo": "T3",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Padre Hurtado",
     "CallesRef": null,
@@ -1300,7 +1300,7 @@
   {
     "OsmId": 12511401272,
     "Codigo": "T4",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Malloco",
     "CallesRef": null,
@@ -1311,7 +1311,7 @@
   {
     "OsmId": 12511401277,
     "Codigo": "T4",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Malloco",
     "CallesRef": null,
@@ -1322,7 +1322,7 @@
   {
     "OsmId": 12511401244,
     "Codigo": "T6",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Talagante",
     "CallesRef": null,
@@ -1333,7 +1333,7 @@
   {
     "OsmId": 12511401245,
     "Codigo": "T6",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Talagante",
     "CallesRef": null,
@@ -1344,7 +1344,7 @@
   {
     "OsmId": 12511401282,
     "Codigo": "T7",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "El Paico",
     "CallesRef": null,
@@ -1355,7 +1355,7 @@
   {
     "OsmId": 12511401283,
     "Codigo": "T7",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "El Paico",
     "CallesRef": null,
@@ -1773,7 +1773,7 @@
   {
     "OsmId": 12511410970,
     "Codigo": "T10",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Puangue",
     "CallesRef": null,
@@ -1784,7 +1784,7 @@
   {
     "OsmId": 12511410971,
     "Codigo": "T10",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Puangue",
     "CallesRef": null,
@@ -1795,7 +1795,7 @@
   {
     "OsmId": 9008699779,
     "Codigo": "T8",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Pomaire",
     "CallesRef": null,
@@ -1806,7 +1806,7 @@
   {
     "OsmId": 12511401284,
     "Codigo": "T8",
-    "Autopista": "Autopistas Urbanas Santiago",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Bidireccional",
     "Descripcion": "Pomaire",
     "CallesRef": null,
@@ -1817,7 +1817,7 @@
   {
     "OsmId": 6117130672,
     "Codigo": "P10",
-    "Autopista": "Ruta 5",
+    "Autopista": "Vespucio Norte",
     "Sentido": "Ruta 5 Norte → Pedro Fontova",
     "Descripcion": "P10 Ruta 5 Norte - Pedro Fontova",
     "CallesRef": "Ruta 5 Norte / Pedro Fontova",
@@ -1828,7 +1828,7 @@
   {
     "OsmId": 6117130671,
     "Codigo": "P11",
-    "Autopista": "Ruta 5",
+    "Autopista": "Vespucio Norte",
     "Sentido": "Pedro Fontova → Ruta 5 Norte",
     "Descripcion": "P11 Pedro Fontova - Ruta 5 Norte",
     "CallesRef": "Pedro Fontova / Ruta 5 Norte",
@@ -1839,7 +1839,7 @@
   {
     "OsmId": 13122129279,
     "Codigo": "P11",
-    "Autopista": "Ruta 5",
+    "Autopista": "Vespucio Norte",
     "Sentido": "Pedro Fontova → Ruta 5 Norte",
     "Descripcion": "P11 Pedro Fontova - Ruta 5 Norte",
     "CallesRef": "Pedro Fontova / Ruta 5 Norte",
@@ -1850,7 +1850,7 @@
   {
     "OsmId": 6114181662,
     "Codigo": "P2.1",
-    "Autopista": "Ruta 5",
+    "Autopista": "Autopista Central",
     "Sentido": "Ruta 5 → General Velásquez",
     "Descripcion": "P2.1 Ruta 5 - General Velásquez",
     "CallesRef": "Ruta 5 / General Velásquez",
@@ -1861,7 +1861,7 @@
   {
     "OsmId": 6114181660,
     "Codigo": "P2.2",
-    "Autopista": "Ruta 5",
+    "Autopista": "Costanera Norte",
     "Sentido": "Gral. Velásquez → Ruta 5",
     "Descripcion": "P2.2 Gral. Velásquez - Ruta 5",
     "CallesRef": "Gral. Velásquez / Ruta 5",
@@ -1872,7 +1872,7 @@
   {
     "OsmId": 6114181664,
     "Codigo": "P3.3",
-    "Autopista": "Ruta 5",
+    "Autopista": "Autopista Central",
     "Sentido": "Gran Avenida → Ruta 5",
     "Descripcion": "P3.3 Gran Avenida - Ruta 5",
     "CallesRef": "Gran Avenida / Ruta 5",
@@ -1883,7 +1883,7 @@
   {
     "OsmId": 6114181666,
     "Codigo": "P3.4",
-    "Autopista": "Ruta 5",
+    "Autopista": "Autopista Central",
     "Sentido": "Ruta 5 → Gran Avenida",
     "Descripcion": "P3.4 Ruta 5 - Gran Avenida",
     "CallesRef": "Ruta 5 / Gran Avenida",
@@ -1894,7 +1894,7 @@
   {
     "OsmId": 6117130673,
     "Codigo": "P9",
-    "Autopista": "Ruta 5",
+    "Autopista": "Vespucio Norte",
     "Sentido": "Lo Echevers → Ruta 5 Norte",
     "Descripcion": "P9 Lo Echevers - Ruta 5 Norte",
     "CallesRef": "Lo Echevers / Ruta 5 Norte",
@@ -1905,7 +1905,7 @@
   {
     "OsmId": 285899561,
     "Codigo": "PA28",
-    "Autopista": "Ruta 5",
+    "Autopista": "Autopista Central",
     "Sentido": "Río Mapocho → Ruta 5 Norte",
     "Descripcion": "PA28 - Río Mapocho - Ruta 5 Norte",
     "CallesRef": "Río Mapocho / Ruta 5 Norte",
@@ -1916,7 +1916,7 @@
   {
     "OsmId": 6116337639,
     "Codigo": "PA29",
-    "Autopista": "Ruta 5",
+    "Autopista": "Autopista Central",
     "Sentido": "Ruta 5 Norte → Río Mapocho",
     "Descripcion": "PA29 - Ruta 5 Norte - Río Mapocho",
     "CallesRef": "Ruta 5 Norte / Río Mapocho",
@@ -1927,7 +1927,7 @@
   {
     "OsmId": 6223443638,
     "Codigo": "OSM6223443638",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Bidireccional",
     "Descripcion": "Peaje Lampa",
     "CallesRef": null,
@@ -1938,7 +1938,7 @@
   {
     "OsmId": 6277890252,
     "Codigo": "OSM6277890252",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Bidireccional",
     "Descripcion": "Peaje Lampa",
     "CallesRef": null,
@@ -1949,7 +1949,7 @@
   {
     "OsmId": 6548823505,
     "Codigo": "P1 - Paso Superior Lo Marcoleta",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -1960,7 +1960,7 @@
   {
     "OsmId": 6548823501,
     "Codigo": "P2 - Paso Superior Lo Marcoleta",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -1971,7 +1971,7 @@
   {
     "OsmId": 6122216578,
     "Codigo": "P3 - Enlace Buenaventura",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -1982,7 +1982,7 @@
   {
     "OsmId": 6548809057,
     "Codigo": "P4 - Enlace Buenaventura",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Bidireccional",
     "Descripcion": "(sin nombre OSM)",
     "CallesRef": null,
@@ -1993,7 +1993,7 @@
   {
     "OsmId": 6615396127,
     "Codigo": "P5",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Pórtico 5 → Paso Superior La Montaña",
     "Descripcion": "Pórtico 5 - Paso Superior La Montaña",
     "CallesRef": "Pórtico 5 / Paso Superior La Montaña",
@@ -2004,7 +2004,7 @@
   {
     "OsmId": 6615396126,
     "Codigo": "P6",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Pórtico 6 → Paso Superior La Montaña",
     "Descripcion": "Pórtico 6 - Paso Superior La Montaña",
     "CallesRef": "Pórtico 6 / Paso Superior La Montaña",
@@ -2015,7 +2015,7 @@
   {
     "OsmId": 6615396116,
     "Codigo": "P7",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Pórtico 7 → Enlace Lo Pinto",
     "Descripcion": "Pórtico 7 - Enlace Lo Pinto",
     "CallesRef": "Pórtico 7 / Enlace Lo Pinto",
@@ -2026,7 +2026,7 @@
   {
     "OsmId": 6615396115,
     "Codigo": "P8",
-    "Autopista": "Ruta 5 Norte (Nueva Aconcagua)",
+    "Autopista": "Ruta 5 Norte (Aconcagua)",
     "Sentido": "Pórtico 8 → Enlace Lo Pinto",
     "Descripcion": "Pórtico 8 - Enlace Lo Pinto",
     "CallesRef": "Pórtico 8 / Enlace Lo Pinto",
@@ -2037,7 +2037,7 @@
   {
     "OsmId": 9611695678,
     "Codigo": "P16",
-    "Autopista": "Ruta 68 / Costanera Norte",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Santa Elena → Ruta 68",
     "Descripcion": "P16 Santa Elena - Ruta 68",
     "CallesRef": "Santa Elena / Ruta 68",
@@ -2048,7 +2048,7 @@
   {
     "OsmId": 9611695677,
     "Codigo": "P2",
-    "Autopista": "Ruta 68 / Costanera Norte",
+    "Autopista": "Autopista del Sol",
     "Sentido": "Ruta 68 → Los Mares",
     "Descripcion": "P2 Ruta 68 - Los Mares",
     "CallesRef": "Ruta 68 / Los Mares",
