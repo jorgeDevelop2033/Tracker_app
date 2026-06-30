@@ -88,7 +88,6 @@ namespace Tracker.Worker.Infrastructure.Services
                 var diaTipo = _calendario.DiaTipoDe(ts);
                 var horaLocal = TimeOnly.FromDateTime(_calendario.ToLocal(ts));
                 var banda = await _bandas.ResolverBandaAsync(portico.Id, diaTipo, horaLocal, ct);
-                Console.WriteLine($"[BANDA] tsUtc={ts:o} kind={ts.Kind} -> local={_calendario.ToLocal(ts):o} dia={diaTipo} hora={horaLocal} => banda={banda}");
 
                 var tarifa = await _tarifas.GetVigenteAsync(portico.Id, categoria, banda, ts, ct);
                 var precio = CalcularPrecio(tarifa, portico.LongitudKm);
