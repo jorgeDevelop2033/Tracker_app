@@ -14,7 +14,8 @@ public sealed record TarifaBulkRow(
     decimal? ValorPorKm,
     decimal? ValorFijo,
     decimal? KmTramo,
-    DateTime? VigenteDesde);
+    DateTime? VigenteDesde,
+    string? Autopista = null);  // si viene, solo aplica a pórticos de esa autopista (códigos colisionan entre concesiones)
 
 /// <summary>
 /// Ventana horaria de banda para un pórtico (identificado por su Código).
@@ -25,4 +26,5 @@ public sealed record BandaHorarioBulkRow(
     DiaTipo DiaTipo,
     string HoraInicio,
     string HoraFin,
-    Banda Banda);
+    Banda Banda,
+    string? Autopista = null);  // si viene, solo aplica a pórticos de esa autopista

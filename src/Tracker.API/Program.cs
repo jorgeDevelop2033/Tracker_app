@@ -209,19 +209,23 @@ app.MapPost("/api/tarifas/bulk",
     if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
     if (filas.Length == 0) return Results.BadRequest(new { error = "sin filas" });
 
-    // Índice de pórticos por Código (puede haber repetidos por sentido → tomamos todos).
+    // Índice de pórticos por (Código, Autopista). Los códigos colisionan entre
+    // concesiones, por eso se puede filtrar opcionalmente por autopista.
     var codigos = filas.Select(f => f.Codigo).Distinct().ToArray();
     var porticos = await db.Porticos.AsNoTracking()
         .Where(p => codigos.Contains(p.Codigo))
-        .Select(p => new { p.Id, p.Codigo })
+        .Select(p => new { p.Id, p.Codigo, p.Autopista })
         .ToListAsync(ct);
-    var porByCodigo = porticos.GroupBy(p => p.Codigo)
-        .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToArray());
+
+    Guid[] Resolver(string codigo, string? autopista) => porticos
+        .Where(p => p.Codigo == codigo && (autopista == null || p.Autopista == autopista))
+        .Select(p => p.Id).ToArray();
 
     int cargadas = 0; var noEncontrados = new List<string>();
     foreach (var f in filas)
     {
-        if (!porByCodigo.TryGetValue(f.Codigo, out var ids)) { noEncontrados.Add(f.Codigo); continue; }
+        var ids = Resolver(f.Codigo, f.Autopista);
+        if (ids.Length == 0) { noEncontrados.Add(f.Autopista is null ? f.Codigo : $"{f.Codigo}@{f.Autopista}"); continue; }
         if (f.ValorPorKm is null && f.ValorFijo is null) continue; // nada que cobrar
 
         foreach (var pid in ids)
@@ -253,15 +257,18 @@ app.MapPost("/api/bandas-horario/bulk",
     var codigos = filas.Select(f => f.Codigo).Distinct().ToArray();
     var porticos = await db.Porticos.AsNoTracking()
         .Where(p => codigos.Contains(p.Codigo))
-        .Select(p => new { p.Id, p.Codigo })
+        .Select(p => new { p.Id, p.Codigo, p.Autopista })
         .ToListAsync(ct);
-    var porByCodigo = porticos.GroupBy(p => p.Codigo)
-        .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToArray());
+
+    Guid[] Resolver(string codigo, string? autopista) => porticos
+        .Where(p => p.Codigo == codigo && (autopista == null || p.Autopista == autopista))
+        .Select(p => p.Id).ToArray();
 
     int cargadas = 0; var noEncontrados = new List<string>();
     foreach (var f in filas)
     {
-        if (!porByCodigo.TryGetValue(f.Codigo, out var ids)) { noEncontrados.Add(f.Codigo); continue; }
+        var ids = Resolver(f.Codigo, f.Autopista);
+        if (ids.Length == 0) { noEncontrados.Add(f.Autopista is null ? f.Codigo : $"{f.Codigo}@{f.Autopista}"); continue; }
         if (!TimeOnly.TryParse(f.HoraInicio, out var ini) || !TimeOnly.TryParse(f.HoraFin, out var fin))
             continue;
 
@@ -284,11 +291,14 @@ app.MapPost("/api/bandas-horario/bulk",
 }).WithName("BulkBandasHorario");
 
 // Borra las ventanas de banda de un pórtico (para recargar sin duplicar).
+// Opcional ?autopista=... para no afectar pórticos homónimos de otras concesiones.
 app.MapDelete("/api/bandas-horario/{codigo}",
-    async (string codigo, HttpContext http, TrackerDbContext db, CancellationToken ct) =>
+    async (string codigo, string? autopista, HttpContext http, TrackerDbContext db, CancellationToken ct) =>
 {
     if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
-    var ids = await db.Porticos.Where(p => p.Codigo == codigo).Select(p => p.Id).ToListAsync(ct);
+    var ids = await db.Porticos
+        .Where(p => p.Codigo == codigo && (autopista == null || p.Autopista == autopista))
+        .Select(p => p.Id).ToListAsync(ct);
     var borradas = await db.BandasHorario.Where(b => ids.Contains(b.PorticoId)).ExecuteDeleteAsync(ct);
     return Results.Ok(new { borradas });
 }).WithName("DeleteBandasHorario");
