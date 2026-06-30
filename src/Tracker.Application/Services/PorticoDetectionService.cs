@@ -18,6 +18,8 @@ namespace Tracker.Worker.Infrastructure.Services
         private readonly IPorticoRepository _porticos;
         private readonly ITransitoRepository _transitos;
         private readonly ITarifaPorticoRepository _tarifas;
+        private readonly IBandaHorarioRepository _bandas;
+        private readonly ICalendarioChile _calendario;
         private readonly IUnitOfWork _uow; // si no usas UoW, reemplaza por save en capa superior
         private readonly GeometryFactory _gf = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
@@ -30,11 +32,15 @@ namespace Tracker.Worker.Infrastructure.Services
             IPorticoRepository porticos,
             ITransitoRepository transitos,
             ITarifaPorticoRepository tarifas,
+            IBandaHorarioRepository bandas,
+            ICalendarioChile calendario,
             IUnitOfWork uow)
         {
             _porticos = porticos;
             _transitos = transitos;
             _tarifas = tarifas;
+            _bandas = bandas;
+            _calendario = calendario;
             _uow = uow;
         }
 
@@ -74,11 +80,14 @@ namespace Tracker.Worker.Infrastructure.Services
                 if (recientes.Total > 0)
                     continue;
 
-                // 5) Resolver tarifa vigente y calcular precio.
-                //    (Categoría/banda fijas por ahora; cuando exista clasificación de
-                //     vehículo y horario, derivarlas del evento/contexto.)
+                // 5) Resolver banda según la hora local Chile del tránsito y la
+                //    grilla horaria del pórtico; luego tarifa vigente y precio.
+                //    (Categoría fija C1 por ahora; Fase 2 derivará del vehículo.)
                 var categoria = VehicleCategory.C1;
-                var banda = Banda.TBP;
+
+                var diaTipo = _calendario.DiaTipoDe(ts);
+                var horaLocal = TimeOnly.FromDateTime(_calendario.ToLocal(ts));
+                var banda = await _bandas.ResolverBandaAsync(portico.Id, diaTipo, horaLocal, ct);
 
                 var tarifa = await _tarifas.GetVigenteAsync(portico.Id, categoria, banda, ts, ct);
                 var precio = CalcularPrecio(tarifa, portico.LongitudKm);
@@ -88,6 +97,7 @@ namespace Tracker.Worker.Infrastructure.Services
                 {
                     Id = Guid.NewGuid(),
                     PorticoId = portico.Id,
+                    DeviceId = evt.DeviceId,
                     Utc = ts,
                     Posicion = punto,
 

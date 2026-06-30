@@ -24,7 +24,12 @@ namespace Tracker.Infrastructure.DependencyInjection
             services.AddScoped<ITransitoRepository, TransitoRepository>();
             
             services.AddScoped<ITarifaPorticoRepository, TarifaPorticoRepository>();
+            services.AddScoped<IBandaHorarioRepository, BandaHorarioRepository>();
             services.AddScoped<IPorticoDetectionService, PorticoDetectionService>();
+
+            // Calendario/festivos Chile para derivar el tipo de día y la banda.
+            services.AddSingleton<IFestivosChile>(_ => new FestivosChile());
+            services.AddSingleton<ICalendarioChile, CalendarioChile>();
 
             //services.AddScoped<IUnitOfWork>(sp => (IUnitOfWork)sp.GetRequiredService<TrackerDbContext>());
              

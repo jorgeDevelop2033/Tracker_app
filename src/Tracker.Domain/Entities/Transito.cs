@@ -10,6 +10,9 @@ namespace Tracker.Domain.Entities
         public Guid PorticoId { get; set; }
         public Portico Portico { get; set; } = default!;
 
+        // Dispositivo (GPS) que registró el paso. Permite totalizar el gasto por device.
+        public string? DeviceId { get; set; }
+
         public DateTime Utc { get; set; }
 
         // ← enums con defaults para evitar NULL

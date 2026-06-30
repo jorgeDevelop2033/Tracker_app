@@ -22,6 +22,10 @@ namespace Tracker.Infrastructure.Persistence.Configurations
 
             b.Property(t => t.Utc).IsRequired();
 
+            // Dispositivo GPS que registró el paso (para totalizar gasto por device).
+            b.Property(t => t.DeviceId)
+             .HasMaxLength(128);
+
             // Enums → int, con default en BD
             b.Property(t => t.Banda)
              .IsRequired()
@@ -49,6 +53,8 @@ namespace Tracker.Infrastructure.Persistence.Configurations
             b.HasIndex(t => t.PorticoId);
             b.HasIndex(t => t.Utc);
             b.HasIndex(t => new { t.PorticoId, t.Utc });
+            // Agregación de gasto por dispositivo y rango de fechas.
+            b.HasIndex(t => new { t.DeviceId, t.Utc });
         }
     }
 }

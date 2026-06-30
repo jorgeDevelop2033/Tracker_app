@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Tracker.API.Contracts;
 using Tracker.API.Hubs;
 using Tracker.Domain.Abstractions;
+using Tracker.Domain.Entities;        // TarifaPortico, BandaHorario
 using Tracker.Infrastructure.DependencyInjection; // AddInfrastructure(...)
 using Tracker.Infrastructure.Persistence;         // TrackerDbContext
 using Tracker.Infrastructure.Repositories;        // GpsFixRepository
@@ -187,6 +188,174 @@ app.MapPost("/internal/transito",
         .SendAsync("transito", ev, ct);
     return Results.Accepted();
 }).WithName("PushTransito");
+
+// ===========================================================================
+//  Carga de tarifas y horarios de banda (admin). Protegido con X-Internal-Key.
+//  Resuelve el pórtico por Código. Idempotente: tarifas vía UpsertVigencia,
+//  horarios reemplazando las ventanas del pórtico para ese DiaTipo.
+// ===========================================================================
+static bool InternalAuth(HttpContext http, string? key)
+    => !string.IsNullOrEmpty(key) && http.Request.Headers["X-Internal-Key"].ToString() == key;
+
+app.MapPost("/api/tarifas/bulk",
+    async (TarifaBulkRow[] filas, HttpContext http, TrackerDbContext db,
+           Tracker.Domain.Tarifas.ITarifaPorticoRepository repo,
+           Tracker.Domain.Abstractions.IUnitOfWork uow, CancellationToken ct) =>
+{
+    if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
+    if (filas.Length == 0) return Results.BadRequest(new { error = "sin filas" });
+
+    // Índice de pórticos por Código (puede haber repetidos por sentido → tomamos todos).
+    var codigos = filas.Select(f => f.Codigo).Distinct().ToArray();
+    var porticos = await db.Porticos.AsNoTracking()
+        .Where(p => codigos.Contains(p.Codigo))
+        .Select(p => new { p.Id, p.Codigo })
+        .ToListAsync(ct);
+    var porByCodigo = porticos.GroupBy(p => p.Codigo)
+        .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToArray());
+
+    int cargadas = 0; var noEncontrados = new List<string>();
+    foreach (var f in filas)
+    {
+        if (!porByCodigo.TryGetValue(f.Codigo, out var ids)) { noEncontrados.Add(f.Codigo); continue; }
+        if (f.ValorPorKm is null && f.ValorFijo is null) continue; // nada que cobrar
+
+        foreach (var pid in ids)
+        {
+            await repo.UpsertVigenciaAsync(new TarifaPortico
+            {
+                Id = Guid.NewGuid(),
+                PorticoId = pid,
+                Categoria = f.Categoria,
+                Banda = f.Banda,
+                ValorPorKm = f.ValorPorKm,
+                ValorFijo = f.ValorFijo,
+                LongitudKmSnapshot = f.KmTramo,
+                VigenteDesde = f.VigenteDesde ?? DateTime.UtcNow,
+            }, ct);
+            cargadas++;
+        }
+    }
+    await uow.SaveChangesAsync(ct);
+    return Results.Ok(new { cargadas, noEncontrados = noEncontrados.Distinct() });
+}).WithName("BulkTarifas");
+
+app.MapPost("/api/bandas-horario/bulk",
+    async (BandaHorarioBulkRow[] filas, HttpContext http, TrackerDbContext db, CancellationToken ct) =>
+{
+    if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
+    if (filas.Length == 0) return Results.BadRequest(new { error = "sin filas" });
+
+    var codigos = filas.Select(f => f.Codigo).Distinct().ToArray();
+    var porticos = await db.Porticos.AsNoTracking()
+        .Where(p => codigos.Contains(p.Codigo))
+        .Select(p => new { p.Id, p.Codigo })
+        .ToListAsync(ct);
+    var porByCodigo = porticos.GroupBy(p => p.Codigo)
+        .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToArray());
+
+    int cargadas = 0; var noEncontrados = new List<string>();
+    foreach (var f in filas)
+    {
+        if (!porByCodigo.TryGetValue(f.Codigo, out var ids)) { noEncontrados.Add(f.Codigo); continue; }
+        if (!TimeOnly.TryParse(f.HoraInicio, out var ini) || !TimeOnly.TryParse(f.HoraFin, out var fin))
+            continue;
+
+        foreach (var pid in ids)
+        {
+            db.BandasHorario.Add(new BandaHorario
+            {
+                Id = Guid.NewGuid(),
+                PorticoId = pid,
+                DiaTipo = f.DiaTipo,
+                HoraInicio = ini,
+                HoraFin = fin,
+                Banda = f.Banda,
+            });
+            cargadas++;
+        }
+    }
+    await db.SaveChangesAsync(ct);
+    return Results.Ok(new { cargadas, noEncontrados = noEncontrados.Distinct() });
+}).WithName("BulkBandasHorario");
+
+// Borra las ventanas de banda de un pórtico (para recargar sin duplicar).
+app.MapDelete("/api/bandas-horario/{codigo}",
+    async (string codigo, HttpContext http, TrackerDbContext db, CancellationToken ct) =>
+{
+    if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
+    var ids = await db.Porticos.Where(p => p.Codigo == codigo).Select(p => p.Id).ToListAsync(ct);
+    var borradas = await db.BandasHorario.Where(b => ids.Contains(b.PorticoId)).ExecuteDeleteAsync(ct);
+    return Results.Ok(new { borradas });
+}).WithName("DeleteBandasHorario");
+
+// ===========================================================================
+//  Gasto del dispositivo: totales (día/semana/mes) y detalle de tránsitos.
+// ===========================================================================
+
+// Resumen agregado del gasto por período.
+app.MapGet("/api/gastos/resumen",
+    async (string deviceId, DateTime? from, DateTime? to, string? groupBy,
+           TrackerDbContext db, CancellationToken ct) =>
+{
+    var toUtc = to ?? DateTime.UtcNow;
+    var fromUtc = from ?? toUtc.AddDays(-30);
+
+    var transitos = await db.Transitos.AsNoTracking()
+        .Where(t => t.DeviceId == deviceId && t.Utc >= fromUtc && t.Utc <= toUtc)
+        .Select(t => new { t.Utc, t.PrecioCalculado })
+        .ToListAsync(ct);
+
+    var total = transitos.Sum(t => t.PrecioCalculado);
+    var modo = (groupBy ?? "dia").ToLowerInvariant();
+
+    // Agrupación por período (clave local-ish basada en Utc; suficiente para reporte).
+    static int IsoWeek(DateTime d) => System.Globalization.ISOWeek.GetWeekOfYear(d);
+    var grupos = modo switch
+    {
+        "semana" => transitos.GroupBy(t => $"{t.Utc.Year}-W{IsoWeek(t.Utc):00}"),
+        "mes" => transitos.GroupBy(t => $"{t.Utc.Year}-{t.Utc.Month:00}"),
+        _ => transitos.GroupBy(t => t.Utc.ToString("yyyy-MM-dd")),
+    };
+
+    var detalle = grupos
+        .Select(g => new { periodo = g.Key, transitos = g.Count(), total = g.Sum(x => x.PrecioCalculado) })
+        .OrderBy(x => x.periodo);
+
+    return Results.Ok(new
+    {
+        deviceId, from = fromUtc, to = toUtc, groupBy = modo,
+        totalTransitos = transitos.Count, totalGasto = total,
+        periodos = detalle
+    });
+}).WithName("GastoResumen");
+
+// Detalle de tránsitos cobrados (con pórtico, banda y precio).
+app.MapGet("/api/gastos/detalle",
+    async (string deviceId, DateTime? from, DateTime? to, int? take,
+           TrackerDbContext db, CancellationToken ct) =>
+{
+    var toUtc = to ?? DateTime.UtcNow;
+    var fromUtc = from ?? toUtc.AddDays(-7);
+
+    var data = await db.Transitos.AsNoTracking()
+        .Where(t => t.DeviceId == deviceId && t.Utc >= fromUtc && t.Utc <= toUtc)
+        .OrderByDescending(t => t.Utc)
+        .Take(take ?? 500)
+        .Select(t => new
+        {
+            t.Utc,
+            t.PorticoId,
+            Portico = t.Portico.Codigo,
+            t.Portico.Autopista,
+            Banda = t.Banda.ToString(),
+            Categoria = t.Categoria.ToString(),
+            Precio = t.PrecioCalculado
+        })
+        .ToListAsync(ct);
+
+    return Results.Ok(data);
+}).WithName("GastoDetalle");
 
 // ===== SignalR endpoint =====
 app.MapHub<LiveHub>("/liveHub");

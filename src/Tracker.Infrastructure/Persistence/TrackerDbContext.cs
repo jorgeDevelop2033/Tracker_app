@@ -14,6 +14,7 @@ namespace Tracker.Infrastructure.Persistence
         public DbSet<Portico> Porticos => Set<Portico>();
         public DbSet<Transito> Transitos => Set<Transito>();
         public DbSet<TarifaPortico> TarifasPortico => Set<TarifaPortico>();
+        public DbSet<BandaHorario> BandasHorario => Set<BandaHorario>();
         public DbSet<GpsFix> GpsFixes => Set<GpsFix>();
          
 
