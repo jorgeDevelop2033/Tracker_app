@@ -252,17 +252,42 @@ namespace Tracker.Infrastructure.Migrations
             //    la API, así que el borrado tiene que ser reversible sin restaurar
             //    un backup completo. Si el conteo no cuadra, se recuperan de ahí.
             //    La tabla se puede vaciar a mano una vez revisada.
+            //    La tabla se declara con CREATE TABLE explícito y SIN la columna
+            //    rowversion. No se usa SELECT ... INTO: al copiar así, SQL Server
+            //    hereda el tipo `timestamp` en la tabla destino, y en una columna
+            //    timestamp no se puede insertar un valor explícito (error 273),
+            //    que es justo con lo que falló el primer intento.
             migrationBuilder.Sql(@"
                 IF OBJECT_ID('tracker.TransitosDuplicadosRespaldo', 'U') IS NULL
                 BEGIN
-                    SELECT TOP 0
-                           t.*,
-                           CAST(SYSUTCDATETIME() AS datetime2) AS ArchivadoUtc
-                    INTO tracker.TransitosDuplicadosRespaldo
-                    FROM tracker.Transitos AS t;
+                    CREATE TABLE tracker.TransitosDuplicadosRespaldo (
+                        Id                    uniqueidentifier NOT NULL,
+                        PorticoId             uniqueidentifier NOT NULL,
+                        DeviceId              nvarchar(128)    NULL,
+                        VehiculoId            uniqueidentifier NULL,
+                        ViajeId               uniqueidentifier NULL,
+                        Utc                   datetime2        NOT NULL,
+                        FechaLocal            date             NOT NULL,
+                        HoraLocal             time             NOT NULL,
+                        DiaTipo               int              NOT NULL,
+                        Banda                 int              NOT NULL,
+                        Categoria             int              NOT NULL,
+                        PrecioCalculado       decimal(18,4)    NOT NULL,
+                        TarifaPorticoId       uniqueidentifier NULL,
+                        AutopistaSnapshot     nvarchar(120)    NULL,
+                        PorticoCodigoSnapshot nvarchar(40)     NULL,
+                        SentidoSnapshot       nvarchar(80)     NULL,
+                        EstadoConciliacion    int              NOT NULL,
+                        Posicion              geography        NULL,
+                        ExactitudM            float            NULL,
+                        Fuente                nvarchar(32)     NOT NULL,
+                        ArchivadoUtc          datetime2        NOT NULL
+                    );
                 END;
             ");
 
+            //    El OUTPUT lleva lista explícita de columnas en ambos lados, para
+            //    no depender del orden físico de la tabla.
             migrationBuilder.Sql(@"
                 WITH duplicados AS (
                     SELECT Id,
@@ -273,8 +298,20 @@ namespace Tracker.Infrastructure.Migrations
                     WHERE DeviceId IS NOT NULL
                 )
                 DELETE t
-                OUTPUT deleted.*, SYSUTCDATETIME()
-                    INTO tracker.TransitosDuplicadosRespaldo
+                OUTPUT deleted.Id, deleted.PorticoId, deleted.DeviceId,
+                       deleted.VehiculoId, deleted.ViajeId, deleted.Utc,
+                       deleted.FechaLocal, deleted.HoraLocal, deleted.DiaTipo,
+                       deleted.Banda, deleted.Categoria, deleted.PrecioCalculado,
+                       deleted.TarifaPorticoId, deleted.AutopistaSnapshot,
+                       deleted.PorticoCodigoSnapshot, deleted.SentidoSnapshot,
+                       deleted.EstadoConciliacion, deleted.Posicion,
+                       deleted.ExactitudM, deleted.Fuente, SYSUTCDATETIME()
+                    INTO tracker.TransitosDuplicadosRespaldo (
+                       Id, PorticoId, DeviceId, VehiculoId, ViajeId, Utc,
+                       FechaLocal, HoraLocal, DiaTipo, Banda, Categoria,
+                       PrecioCalculado, TarifaPorticoId, AutopistaSnapshot,
+                       PorticoCodigoSnapshot, SentidoSnapshot, EstadoConciliacion,
+                       Posicion, ExactitudM, Fuente, ArchivadoUtc)
                 FROM tracker.Transitos AS t
                 INNER JOIN duplicados AS d ON d.Id = t.Id
                 WHERE d.rn > 1;
