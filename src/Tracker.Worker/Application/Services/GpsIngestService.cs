@@ -8,18 +8,21 @@ using Tracker.Domain.Entities;
 
 using Tracker.Domain.Abstractions;
 using Tracker.Application.Dtos;
+using Tracker.Domain.Viajes;
 
 namespace Tracker.Worker.Application.Services
 {
     public sealed class GpsIngestService : IGpsIngestService
     {
         private readonly IGpsFixRepository _repo;
+        private readonly IViajeRepository _viajes;
         private readonly GeometryFactory _geo;
         private readonly ILogger<GpsIngestService> _log;
 
-        public GpsIngestService(IGpsFixRepository repo, ILogger<GpsIngestService> log)
+        public GpsIngestService(IGpsFixRepository repo, IViajeRepository viajes, ILogger<GpsIngestService> log)
         {
             _repo = repo;
+            _viajes = viajes;
             _log = log;
             _geo = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326); // geography
         }
@@ -44,10 +47,16 @@ namespace Tracker.Worker.Application.Services
             // Crea geografía (lon, lat)
             var point = _geo.CreatePoint(new Coordinate(dto.Lon, dto.Lat));
 
+            // Si hay un viaje abierto para este device, el fix queda colgado de él.
+            // Eso hace que la ruta del viaje sea un filtro por columna indexada y,
+            // más adelante, permite purgar los fixes de viajes ya consolidados.
+            var viaje = await _viajes.GetEnCursoPorDeviceAsync(dto.DeviceId, ct);
+
             var entity = new GpsFix
             {
                 Id = Guid.NewGuid(),
                 DeviceId = dto.DeviceId,
+                ViajeId = viaje?.Id,
                 Lat = dto.Lat,
                 Lon = dto.Lon,
                 SpeedKph = dto.SpeedKph,

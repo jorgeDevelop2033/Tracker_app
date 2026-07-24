@@ -60,8 +60,10 @@ internal class Program
                 http.DefaultRequestHeaders.Add("X-Internal-Key", internalKey);
         });
 
-        // Hosted Service
+        // Hosted Services
         builder.Services.AddHostedService<GpsConsumer>();
+        // Red de seguridad: cierra viajes que la app dejó abiertos.
+        builder.Services.AddHostedService<Tracker.Worker.Workers.CierreViajesService>();
 
         var host = builder.Build();
         Console.WriteLine("✅ Host construido. Iniciando...");

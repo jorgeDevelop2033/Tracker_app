@@ -76,6 +76,14 @@ namespace Tracker.Infrastructure.Repositories
 
         // ---------- Espacial ----------
         // Nota: con SQL Server geography, la distancia se evalúa en metros.
+        public Task<List<GpsFix>> ListByViajeAsync(
+            Guid viajeId, int take = 50_000, CancellationToken ct = default)
+            => _db.GpsFixes.AsNoTracking()
+                  .Where(x => x.ViajeId == viajeId)
+                  .OrderBy(x => x.Utc)
+                  .Take(Math.Clamp(take, 1, 200_000))
+                  .ToListAsync(ct);
+
         public Task<List<GpsFix>> ListWithinRadiusAsync(
             double lat, double lon, double radiusMeters, string? deviceIdFilter = null, int take = 500, CancellationToken ct = default)
         {
@@ -94,16 +102,38 @@ namespace Tracker.Infrastructure.Repositories
         }
 
         // ---------- Mantenimiento ----------
+        /// <summary>
+        /// Purga fixes antiguos de un device en lotes.
+        /// <para>
+        /// Va por tandas y no de una sola vez a propósito: <c>gps_fix</c> crece a
+        /// millones de filas, y un DELETE único de ese tamaño escala el bloqueo a
+        /// toda la tabla, infla el log de transacciones y puede tumbar al Worker.
+        /// Con <c>ExecuteDelete</c> tampoco se materializan entidades en memoria
+        /// (la versión anterior traía todas las filas al proceso antes de borrar).
+        /// </para>
+        /// </summary>
         public async Task<int> DeleteByDeviceBeforeUtcAsync(string deviceId, DateTime beforeUtc, CancellationToken ct = default)
         {
-            var old = await _db.GpsFixes
-                .Where(x => x.DeviceId == deviceId && x.Utc < beforeUtc)
-                .ToListAsync(ct);
+            const int loteSize = 5_000;
+            var total = 0;
 
-            if (old.Count == 0) return 0;
+            while (!ct.IsCancellationRequested)
+            {
+                var borradas = await _db.GpsFixes
+                    .Where(x => x.DeviceId == deviceId && x.Utc < beforeUtc)
+                    .OrderBy(x => x.Utc)
+                    .Take(loteSize)
+                    .ExecuteDeleteAsync(ct);
 
-            _db.GpsFixes.RemoveRange(old);
-            return await _db.SaveChangesAsync(ct);
+                total += borradas;
+                if (borradas < loteSize) break;
+            }
+
+            if (total > 0)
+                _log.LogInformation("Purga gps_fix: {Filas} filas de {Device} anteriores a {Corte:u}.",
+                    total, deviceId, beforeUtc);
+
+            return total;
         }
     }
 }

@@ -4,6 +4,12 @@
     <ProjectReference Include="..\Tracker.Domain\Tracker.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Solo abstracciones: permite loguear desde los servicios de aplicación
+         sin atar la capa a ninguna implementación de logging. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -6,6 +6,8 @@ using Tracker.Domain.Abstractions;
 using Tracker.Domain.Porticos;
 using Tracker.Domain.Tarifas;
 using Tracker.Domain.Transitos;
+using Tracker.Domain.Vehiculos;
+using Tracker.Domain.Viajes;
 using Tracker.Infrastructure.Persistence;
 using Tracker.Infrastructure.Repositories;
 using Tracker.Worker.Infrastructure.Services;
@@ -26,6 +28,12 @@ namespace Tracker.Infrastructure.DependencyInjection
             services.AddScoped<ITarifaPorticoRepository, TarifaPorticoRepository>();
             services.AddScoped<IBandaHorarioRepository, BandaHorarioRepository>();
             services.AddScoped<IPorticoDetectionService, PorticoDetectionService>();
+
+            // Vehículos y viajes
+            services.AddScoped<IVehiculoRepository, VehiculoRepository>();
+            services.AddScoped<IAsignacionDispositivoRepository, AsignacionDispositivoRepository>();
+            services.AddScoped<IViajeRepository, ViajeRepository>();
+            services.AddScoped<IViajeService, ViajeService>();
 
             // Calendario/festivos Chile para derivar el tipo de día y la banda.
             services.AddSingleton<IFestivosChile>(_ => new FestivosChile());

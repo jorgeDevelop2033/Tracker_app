@@ -26,6 +26,12 @@ namespace Tracker.Infrastructure.Persistence.Configurations
                   .IsRequired()
                   .HasColumnName("device_id");
 
+            // Viaje al que pertenece el fix (null si no había viaje en curso).
+            // Sin FK declarada a propósito: gps_fix es una tabla de altísimo
+            // volumen y sujeta a purga por lotes; una FK obligaría a validar
+            // cada inserción y bloquearía el borrado masivo de fixes antiguos.
+            entity.Property(e => e.ViajeId).HasColumnName("viaje_id");
+
             entity.Property(e => e.Lat).HasColumnName("lat");
             entity.Property(e => e.Lon).HasColumnName("lon");
             entity.Property(e => e.SpeedKph).HasColumnName("speed_kph");
@@ -65,6 +71,12 @@ namespace Tracker.Infrastructure.Persistence.Configurations
             // Búsquedas frecuentes
             entity.HasIndex(e => new { e.DeviceId, e.Utc })
                   .HasDatabaseName("ix_gpsfix_device_utc");
+
+            // Ruta de un viaje: WHERE viaje_id = x ORDER BY utc. Filtrado para no
+            // indexar los fixes sueltos (sin viaje), que son mayoría al principio.
+            entity.HasIndex(e => new { e.ViajeId, e.Utc })
+                  .HasFilter("[viaje_id] IS NOT NULL")
+                  .HasDatabaseName("ix_gpsfix_viaje_utc");
         }
     }
 }

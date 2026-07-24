@@ -10,6 +10,8 @@ using Tracker.Domain.Abstractions.Filter;
 using Tracker.Application.Dtos;
 using Tracker.Application.Services;
 using Tracker.Contracts.Enums;
+using Tracker.Domain.Vehiculos;                // IVehiculoRepository, IAsignacionDispositivoRepository
+using Tracker.Domain.Viajes;                   // IViajeRepository
 
 namespace Tracker.Worker.Infrastructure.Services
 {
@@ -20,6 +22,9 @@ namespace Tracker.Worker.Infrastructure.Services
         private readonly ITarifaPorticoRepository _tarifas;
         private readonly IBandaHorarioRepository _bandas;
         private readonly ICalendarioChile _calendario;
+        private readonly IAsignacionDispositivoRepository _asignaciones;
+        private readonly IVehiculoRepository _vehiculos;
+        private readonly IViajeRepository _viajes;
         private readonly IUnitOfWork _uow; // si no usas UoW, reemplaza por save en capa superior
         private readonly GeometryFactory _gf = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
@@ -34,6 +39,9 @@ namespace Tracker.Worker.Infrastructure.Services
             ITarifaPorticoRepository tarifas,
             IBandaHorarioRepository bandas,
             ICalendarioChile calendario,
+            IAsignacionDispositivoRepository asignaciones,
+            IVehiculoRepository vehiculos,
+            IViajeRepository viajes,
             IUnitOfWork uow)
         {
             _porticos = porticos;
@@ -41,6 +49,9 @@ namespace Tracker.Worker.Infrastructure.Services
             _tarifas = tarifas;
             _bandas = bandas;
             _calendario = calendario;
+            _asignaciones = asignaciones;
+            _vehiculos = vehiculos;
+            _viajes = viajes;
             _uow = uow;
         }
 
@@ -80,29 +91,70 @@ namespace Tracker.Worker.Infrastructure.Services
                 if (recientes.Total > 0)
                     continue;
 
-                // 5) Resolver banda según la hora local Chile del tránsito y la
-                //    grilla horaria del pórtico; luego tarifa vigente y precio.
-                //    (Categoría fija C1 por ahora; Fase 2 derivará del vehículo.)
-                var categoria = VehicleCategory.C1;
+                // 5) Atribución: ¿de qué vehículo era este device EN ESE INSTANTE?
+                //    Se resuelve por la asignación vigente al momento del paso,
+                //    no por la asignación de hoy: así reasignar el teléfono a otro
+                //    auto no reescribe los cobros pasados.
+                Guid? vehiculoId = null;
+                var categoria = VehicleCategory.C1;   // fallback si el device no está asignado
 
+                // DeviceId es no-nulable en el DTO; si llega vacío desde Protobuf,
+                // las consultas simplemente no encuentran nada y el tránsito se
+                // registra sin atribuir.
+                var asignacion = await _asignaciones.GetVigenteAsync(evt.DeviceId, ts, ct);
+
+                if (asignacion is not null)
+                {
+                    vehiculoId = asignacion.VehiculoId;
+                    var vehiculo = await _vehiculos.GetByIdAsync(asignacion.VehiculoId, ct);
+                    if (vehiculo is not null)
+                        categoria = vehiculo.Categoria;   // la categoría real manda sobre el C1 fijo
+                }
+
+                // Viaje en curso del device, si lo hay. Un tránsito fuera de viaje
+                // se registra igual: el peaje existe aunque el conductor no haya
+                // apretado "Iniciar".
+                var viaje = await _viajes.GetEnCursoPorDeviceAsync(evt.DeviceId, ct);
+
+                // 6) Resolver banda según la hora local Chile del tránsito y la
+                //    grilla horaria del pórtico; luego tarifa vigente y precio.
                 var diaTipo = _calendario.DiaTipoDe(ts);
-                var horaLocal = TimeOnly.FromDateTime(_calendario.ToLocal(ts));
+                var local = _calendario.ToLocal(ts);
+                var horaLocal = TimeOnly.FromDateTime(local);
                 var banda = await _bandas.ResolverBandaAsync(portico.Id, diaTipo, horaLocal, ct);
 
                 var tarifa = await _tarifas.GetVigenteAsync(portico.Id, categoria, banda, ts, ct);
                 var precio = CalcularPrecio(tarifa, portico.LongitudKm);
 
-                // 6) Guardar Transito con los campos que SÍ existen en tu entidad
+                // 7) Guardar el tránsito con toda la evidencia del cobro
                 var transito = new Transito
                 {
                     Id = Guid.NewGuid(),
                     PorticoId = portico.Id,
                     DeviceId = evt.DeviceId,
+                    VehiculoId = vehiculoId,
+                    ViajeId = viaje?.Id,
                     Utc = ts,
                     Posicion = punto,
 
+                    // Fecha/hora local persistidas: el reporte diario agrupa por
+                    // el día de Chile, no por el día UTC.
+                    FechaLocal = DateOnly.FromDateTime(local),
+                    HoraLocal = horaLocal,
+                    DiaTipo = diaTipo,
+
                     Categoria = categoria,
                     Banda = banda,
+
+                    // Trazabilidad del monto: qué tarifa se aplicó.
+                    TarifaPorticoId = tarifa?.Id,
+
+                    // Snapshots del catálogo, congelados al momento del paso.
+                    AutopistaSnapshot = portico.Autopista,
+                    PorticoCodigoSnapshot = portico.Codigo,
+                    SentidoSnapshot = portico.Sentido,
+
+                    EstadoConciliacion = EstadoConciliacion.Pendiente,
 
                     // opcionales pero útiles si existen en tu entidad
                     ExactitudM = (evt.AccuracyM ?? 0),   // double
@@ -111,6 +163,16 @@ namespace Tracker.Worker.Infrastructure.Services
                 };
 
                 await _transitos.AddAsync(transito, ct);
+
+                // Totales del viaje al vuelo, para que la lista de viajes no tenga
+                // que agregar sobre los tránsitos en cada request. Al cerrar el
+                // viaje se recalculan contra la BD por si esto quedó corto.
+                if (viaje is not null)
+                {
+                    viaje.CantidadTransitos += 1;
+                    viaje.TotalGasto += precio;
+                }
+
                 await _uow.SaveChangesAsync(ct); // si no usas UoW, mueve el commit donde corresponda
 
                 // Registramos el primer match válido y devolvemos el resultado

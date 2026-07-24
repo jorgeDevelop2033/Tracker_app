@@ -8,8 +8,12 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Tracker.API.Contracts;
 using Tracker.API.Hubs;
+using Tracker.Application.Services;   // IViajeService
+using Tracker.Contracts.Enums;        // EstadoViaje
 using Tracker.Domain.Abstractions;
-using Tracker.Domain.Entities;        // TarifaPortico, BandaHorario
+using Tracker.Domain.Entities;        // TarifaPortico, BandaHorario, Vehiculo, Viaje
+using Tracker.Domain.Vehiculos;       // IVehiculoRepository, IAsignacionDispositivoRepository
+using Tracker.Domain.Viajes;          // IViajeRepository
 using Tracker.Infrastructure.DependencyInjection; // AddInfrastructure(...)
 using Tracker.Infrastructure.Persistence;         // TrackerDbContext
 using Tracker.Infrastructure.Repositories;        // GpsFixRepository
@@ -327,68 +331,369 @@ app.MapPost("/api/porticos/reetiquetar",
 // ===========================================================================
 
 // Resumen agregado del gasto por período.
+//
+// Agrupa por FECHA LOCAL de Chile, no por UTC. Chile va UTC-4/-3, así que todo
+// tránsito posterior a las ~20:00 locales cae en el día UTC siguiente: agrupar
+// por Utc mandaba los peajes de la tarde-noche al día equivocado (y en los
+// cortes de mes, al mes equivocado). Como el Worker ya persiste FechaLocal, la
+// agrupación se hace en la BD sobre una columna indexada en vez de traerse
+// todos los tránsitos a memoria.
+//
+// Filtra por vehiculoId (preferido) o deviceId (compatibilidad).
 app.MapGet("/api/gastos/resumen",
-    async (string deviceId, DateTime? from, DateTime? to, string? groupBy,
+    async (Guid? vehiculoId, string? deviceId, DateOnly? desde, DateOnly? hasta, string? groupBy,
            TrackerDbContext db, CancellationToken ct) =>
 {
-    var toUtc = to ?? DateTime.UtcNow;
-    var fromUtc = from ?? toUtc.AddDays(-30);
+    if (vehiculoId is null && string.IsNullOrWhiteSpace(deviceId))
+        return Results.BadRequest(new { error = "Indica vehiculoId o deviceId." });
 
-    var transitos = await db.Transitos.AsNoTracking()
-        .Where(t => t.DeviceId == deviceId && t.Utc >= fromUtc && t.Utc <= toUtc)
-        .Select(t => new { t.Utc, t.PrecioCalculado })
-        .ToListAsync(ct);
+    var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+    var hastaLocal = hasta ?? hoy;
+    var desdeLocal = desde ?? hastaLocal.AddDays(-30);
 
-    var total = transitos.Sum(t => t.PrecioCalculado);
+    var q = db.Transitos.AsNoTracking()
+        .Where(t => t.FechaLocal >= desdeLocal && t.FechaLocal <= hastaLocal);
+
+    q = vehiculoId is Guid v
+        ? q.Where(t => t.VehiculoId == v)
+        : q.Where(t => t.DeviceId == deviceId);
+
     var modo = (groupBy ?? "dia").ToLowerInvariant();
 
-    // Agrupación por período (clave local-ish basada en Utc; suficiente para reporte).
-    static int IsoWeek(DateTime d) => System.Globalization.ISOWeek.GetWeekOfYear(d);
-    var grupos = modo switch
+    // La agregación ocurre en SQL. Para "dia" y "autopista" se agrupa por columna
+    // directa; para mes/semana se derivan del año/mes de la fecha local.
+    object periodos = modo switch
     {
-        "semana" => transitos.GroupBy(t => $"{t.Utc.Year}-W{IsoWeek(t.Utc):00}"),
-        "mes" => transitos.GroupBy(t => $"{t.Utc.Year}-{t.Utc.Month:00}"),
-        _ => transitos.GroupBy(t => t.Utc.ToString("yyyy-MM-dd")),
+        "mes" => await q
+            .GroupBy(t => new { t.FechaLocal.Year, t.FechaLocal.Month })
+            .Select(g => new
+            {
+                periodo = g.Key.Year + "-" + (g.Key.Month < 10 ? "0" + g.Key.Month : g.Key.Month.ToString()),
+                transitos = g.Count(),
+                total = g.Sum(x => x.PrecioCalculado)
+            })
+            .OrderBy(x => x.periodo)
+            .ToListAsync(ct),
+
+        "autopista" => await q
+            .GroupBy(t => t.AutopistaSnapshot)
+            .Select(g => new
+            {
+                periodo = g.Key ?? "(sin autopista)",
+                transitos = g.Count(),
+                total = g.Sum(x => x.PrecioCalculado)
+            })
+            .OrderByDescending(x => x.total)
+            .ToListAsync(ct),
+
+        _ => await q
+            .GroupBy(t => t.FechaLocal)
+            .Select(g => new
+            {
+                periodo = g.Key.ToString(),
+                transitos = g.Count(),
+                total = g.Sum(x => x.PrecioCalculado)
+            })
+            .OrderBy(x => x.periodo)
+            .ToListAsync(ct)
     };
 
-    var detalle = grupos
-        .Select(g => new { periodo = g.Key, transitos = g.Count(), total = g.Sum(x => x.PrecioCalculado) })
-        .OrderBy(x => x.periodo);
+    var totalTransitos = await q.CountAsync(ct);
+    var totalGasto = await q.SumAsync(t => t.PrecioCalculado, ct);
 
     return Results.Ok(new
     {
-        deviceId, from = fromUtc, to = toUtc, groupBy = modo,
-        totalTransitos = transitos.Count, totalGasto = total,
-        periodos = detalle
+        vehiculoId,
+        deviceId,
+        desde = desdeLocal,
+        hasta = hastaLocal,
+        groupBy = modo,
+        totalTransitos,
+        totalGasto,
+        periodos
     });
 }).WithName("GastoResumen");
 
-// Detalle de tránsitos cobrados (con pórtico, banda y precio).
+// Detalle de tránsitos cobrados, en hora local y con los datos congelados al
+// momento del paso (no por join en vivo: reetiquetar un pórtico no debe
+// reescribir una conciliación ya cerrada).
+//
+// Paginado por keyset sobre (Utc, Id): con `antesDe` se pide la página
+// siguiente. Take con Skip degrada al avanzar y no soporta bien años de
+// historial.
 app.MapGet("/api/gastos/detalle",
-    async (string deviceId, DateTime? from, DateTime? to, int? take,
+    async (Guid? vehiculoId, string? deviceId, DateOnly? desde, DateOnly? hasta,
+           DateTime? antesDe, int? take,
            TrackerDbContext db, CancellationToken ct) =>
 {
-    var toUtc = to ?? DateTime.UtcNow;
-    var fromUtc = from ?? toUtc.AddDays(-7);
+    if (vehiculoId is null && string.IsNullOrWhiteSpace(deviceId))
+        return Results.BadRequest(new { error = "Indica vehiculoId o deviceId." });
 
-    var data = await db.Transitos.AsNoTracking()
-        .Where(t => t.DeviceId == deviceId && t.Utc >= fromUtc && t.Utc <= toUtc)
+    var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+    var hastaLocal = hasta ?? hoy;
+    var desdeLocal = desde ?? hastaLocal.AddDays(-7);
+    var limite = Math.Clamp(take ?? 200, 1, 1000);
+
+    var q = db.Transitos.AsNoTracking()
+        .Where(t => t.FechaLocal >= desdeLocal && t.FechaLocal <= hastaLocal);
+
+    q = vehiculoId is Guid v
+        ? q.Where(t => t.VehiculoId == v)
+        : q.Where(t => t.DeviceId == deviceId);
+
+    if (antesDe is DateTime cursor)
+        q = q.Where(t => t.Utc < cursor);
+
+    var data = await q
         .OrderByDescending(t => t.Utc)
-        .Take(take ?? 500)
-        .Select(t => new
-        {
-            t.Utc,
-            t.PorticoId,
-            Portico = t.Portico.Codigo,
-            t.Portico.Autopista,
-            Banda = t.Banda.ToString(),
-            Categoria = t.Categoria.ToString(),
-            Precio = t.PrecioCalculado
-        })
+        .Take(limite)
+        .Select(t => new TransitoDetalleDto(
+            t.Id,
+            t.FechaLocal,
+            t.HoraLocal,
+            t.PorticoCodigoSnapshot,
+            t.AutopistaSnapshot,
+            t.SentidoSnapshot,
+            t.Banda.ToString(),
+            t.Categoria.ToString(),
+            t.DiaTipo.ToString(),
+            t.PrecioCalculado,
+            t.EstadoConciliacion.ToString()))
         .ToListAsync(ct);
 
-    return Results.Ok(data);
+    return Results.Ok(new
+    {
+        items = data,
+        // Cursor para la página siguiente; null cuando ya no hay más.
+        siguienteCursor = data.Count == limite
+            ? await q.OrderByDescending(t => t.Utc).Skip(limite - 1).Select(t => (DateTime?)t.Utc).FirstOrDefaultAsync(ct)
+            : null
+    });
 }).WithName("GastoDetalle");
+
+// ===========================================================================
+//  Vehículos y asignación de dispositivos
+// ===========================================================================
+
+app.MapGet("/api/vehiculos", async (bool? soloActivos, IVehiculoRepository repo,
+                                    IAsignacionDispositivoRepository asignaciones,
+                                    CancellationToken ct) =>
+{
+    var vehiculos = await repo.ListAsync(soloActivos ?? true, ct);
+
+    var salida = new List<VehiculoDto>(vehiculos.Count);
+    foreach (var v in vehiculos)
+    {
+        var abiertas = await asignaciones.ListByVehiculoAsync(v.Id, ct);
+        var actual = abiertas.FirstOrDefault(a => a.HastaUtc is null)?.DeviceId;
+
+        salida.Add(new VehiculoDto(v.Id, v.Patente, v.Alias, v.Categoria.ToString(),
+                                   v.Marca, v.Modelo, v.Anio, v.Activo, actual));
+    }
+
+    return Results.Ok(salida);
+}).WithName("ListarVehiculos");
+
+app.MapPost("/api/vehiculos", async (CrearVehiculoRequest req, IVehiculoRepository repo,
+                                     IUnitOfWork uow, CancellationToken ct) =>
+{
+    var patente = Vehiculo.NormalizarPatente(req.Patente);
+    if (string.IsNullOrWhiteSpace(patente))
+        return Results.BadRequest(new { error = "La patente es obligatoria." });
+
+    if (await repo.GetByPatenteAsync(patente, ct) is not null)
+        return Results.Conflict(new { error = $"Ya existe un vehículo con patente {patente}." });
+
+    var vehiculo = new Vehiculo
+    {
+        Id = Guid.NewGuid(),
+        Patente = patente,
+        Alias = req.Alias,
+        Categoria = req.Categoria,
+        Marca = req.Marca,
+        Modelo = req.Modelo,
+        Anio = req.Anio
+    };
+
+    await repo.AddAsync(vehiculo, ct);
+    await uow.SaveChangesAsync(ct);
+
+    return Results.Created($"/api/vehiculos/{vehiculo.Id}",
+        new VehiculoDto(vehiculo.Id, vehiculo.Patente, vehiculo.Alias, vehiculo.Categoria.ToString(),
+                        vehiculo.Marca, vehiculo.Modelo, vehiculo.Anio, vehiculo.Activo, null));
+}).WithName("CrearVehiculo");
+
+// Asigna un dispositivo al vehículo. Cierra la asignación abierta anterior del
+// mismo device: el teléfono no puede estar en dos autos a la vez, y el corte
+// deja intacta la atribución de los tránsitos ya registrados.
+app.MapPost("/api/vehiculos/{id:guid}/dispositivos",
+    async (Guid id, AsignarDispositivoRequest req,
+           IVehiculoRepository vehiculos, IAsignacionDispositivoRepository asignaciones,
+           IUnitOfWork uow, CancellationToken ct) =>
+{
+    if (await vehiculos.GetByIdAsync(id, ct) is null)
+        return Results.NotFound(new { error = "Vehículo no encontrado." });
+
+    if (string.IsNullOrWhiteSpace(req.DeviceId))
+        return Results.BadRequest(new { error = "DeviceId es obligatorio." });
+
+    var desde = req.DesdeUtc ?? DateTime.UtcNow;
+
+    var previa = await asignaciones.GetAbiertaAsync(req.DeviceId, ct);
+    if (previa is not null)
+    {
+        if (previa.VehiculoId == id)
+            return Results.Ok(new AsignacionDto(previa.Id, previa.DeviceId, previa.DesdeUtc, previa.HastaUtc, previa.Nota));
+
+        previa.HastaUtc = desde;
+    }
+
+    var nueva = new AsignacionDispositivo
+    {
+        Id = Guid.NewGuid(),
+        DeviceId = req.DeviceId,
+        VehiculoId = id,
+        DesdeUtc = desde,
+        Nota = req.Nota
+    };
+
+    await asignaciones.AddAsync(nueva, ct);
+    await uow.SaveChangesAsync(ct);
+
+    return Results.Ok(new AsignacionDto(nueva.Id, nueva.DeviceId, nueva.DesdeUtc, nueva.HastaUtc, nueva.Nota));
+}).WithName("AsignarDispositivo");
+
+app.MapGet("/api/vehiculos/{id:guid}/dispositivos",
+    async (Guid id, IAsignacionDispositivoRepository repo, CancellationToken ct) =>
+{
+    var lista = await repo.ListByVehiculoAsync(id, ct);
+    return Results.Ok(lista.Select(a => new AsignacionDto(a.Id, a.DeviceId, a.DesdeUtc, a.HastaUtc, a.Nota)));
+}).WithName("HistorialDispositivos");
+
+// ===========================================================================
+//  Viajes
+// ===========================================================================
+
+app.MapPost("/api/viajes/iniciar",
+    async (IniciarViajeRequest req, IViajeService viajes, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(req.DeviceId))
+        return Results.BadRequest(new { error = "DeviceId es obligatorio." });
+
+    try
+    {
+        var viaje = await viajes.IniciarAsync(
+            req.DeviceId, req.VehiculoId, req.Nombre, req.Utc ?? DateTime.UtcNow, ct);
+
+        return Results.Ok(AViajeResumen(viaje));
+    }
+    catch (InvalidOperationException ex)
+    {
+        // Device sin vehículo asignado: es un error del cliente, no del servidor.
+        return Results.BadRequest(new { error = ex.Message });
+    }
+}).WithName("IniciarViaje");
+
+app.MapPost("/api/viajes/{id:guid}/finalizar",
+    async (Guid id, FinalizarViajeRequest? req, IViajeService viajes, CancellationToken ct) =>
+{
+    var viaje = await viajes.FinalizarAsync(
+        id, req?.Utc ?? DateTime.UtcNow, EstadoViaje.Finalizado, ct);
+
+    return viaje is null
+        ? Results.NotFound(new { error = "Viaje no encontrado." })
+        : Results.Ok(AViajeResumen(viaje));
+}).WithName("FinalizarViaje");
+
+// Viaje abierto de un device (la app lo consulta al reabrirse para retomar).
+app.MapGet("/api/viajes/en-curso",
+    async (string deviceId, IViajeService viajes, CancellationToken ct) =>
+{
+    var viaje = await viajes.ObtenerEnCursoAsync(deviceId, ct);
+    return viaje is null ? Results.NoContent() : Results.Ok(AViajeResumen(viaje));
+}).WithName("ViajeEnCurso");
+
+// Historial de viajes del vehículo, paginado.
+app.MapGet("/api/vehiculos/{id:guid}/viajes",
+    async (Guid id, DateTime? desde, DateTime? hasta, int? page, int? pageSize,
+           IViajeRepository repo, CancellationToken ct) =>
+{
+    var take = Math.Clamp(pageSize ?? 50, 1, 200);
+    var skip = Math.Max(0, (page ?? 1) - 1) * take;
+
+    var total = await repo.CountByVehiculoAsync(id, desde, hasta, ct);
+    var lista = await repo.ListByVehiculoAsync(id, desde, hasta, skip, take, ct);
+
+    return Results.Ok(new
+    {
+        total,
+        page = page ?? 1,
+        pageSize = take,
+        items = lista.Select(AViajeResumen)
+    });
+}).WithName("HistorialViajes");
+
+// Detalle del viaje: cabecera, tránsitos cobrados y corte por autopista.
+app.MapGet("/api/viajes/{id:guid}",
+    async (Guid id, IViajeRepository repo, TrackerDbContext db, CancellationToken ct) =>
+{
+    var viaje = await repo.GetByIdAsync(id, ct);
+    if (viaje is null) return Results.NotFound();
+
+    var transitos = await db.Transitos.AsNoTracking()
+        .Where(t => t.ViajeId == id)
+        .OrderBy(t => t.Utc)
+        .Select(t => new TransitoDetalleDto(
+            t.Id,
+            t.FechaLocal,
+            t.HoraLocal,
+            t.PorticoCodigoSnapshot,
+            t.AutopistaSnapshot,
+            t.SentidoSnapshot,
+            t.Banda.ToString(),
+            t.Categoria.ToString(),
+            t.DiaTipo.ToString(),
+            t.PrecioCalculado,
+            t.EstadoConciliacion.ToString()))
+        .ToListAsync(ct);
+
+    var porAutopista = transitos
+        .GroupBy(t => t.Autopista ?? "(sin autopista)")
+        .Select(g => new TotalAutopistaDto(g.Key, g.Count(), g.Sum(x => x.Precio)))
+        .OrderByDescending(x => x.Total)
+        .ToList();
+
+    return Results.Ok(new ViajeDetalleDto(AViajeResumen(viaje), transitos, porAutopista));
+}).WithName("DetalleViaje");
+
+// Recorrido del viaje. Devuelve la ruta simplificada si el viaje ya está cerrado
+// (es ~20x más chica y basta para dibujar); si sigue abierto, los fixes crudos.
+app.MapGet("/api/viajes/{id:guid}/ruta",
+    async (Guid id, IViajeRepository repo, IGpsFixRepository fixes, CancellationToken ct) =>
+{
+    var viaje = await repo.GetByIdAsync(id, ct);
+    if (viaje is null) return Results.NotFound();
+
+    if (viaje.RutaSimplificada is not null)
+    {
+        var puntos = viaje.RutaSimplificada.Coordinates
+            .Select(c => new { lat = c.Y, lon = c.X });
+
+        return Results.Ok(new { viajeId = id, origen = "simplificada", puntos });
+    }
+
+    var crudos = await fixes.ListByViajeAsync(id, ct: ct);
+    return Results.Ok(new
+    {
+        viajeId = id,
+        origen = "fixes",
+        puntos = crudos.Select(f => new { lat = f.Lat, lon = f.Lon, utc = f.Utc })
+    });
+}).WithName("RutaViaje");
+
+static ViajeResumenDto AViajeResumen(Viaje v) => new(
+    v.Id, v.VehiculoId, v.DeviceId, v.InicioUtc, v.FinUtc, v.FechaLocalInicio,
+    v.Estado.ToString(), v.Nombre, v.CantidadTransitos, v.TotalGasto, v.DistanciaKm);
 
 // ===== SignalR endpoint =====
 app.MapHub<LiveHub>("/liveHub");
@@ -398,15 +703,35 @@ using (var scope = app.Services.CreateScope())
 {
     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
                                      .CreateLogger("Startup");
+    var db = scope.ServiceProvider.GetRequiredService<TrackerDbContext>();
+
+    // Aviso temprano del desajuste EnsureCreated/Migrate: si el Worker creó la
+    // BD, las tablas existen pero __EFMigrationsHistory está vacía y la
+    // migración va a chocar contra objetos ya existentes.
+    var aplicadas = (await db.Database.GetAppliedMigrationsAsync()).ToList();
+    var pendientes = (await db.Database.GetPendingMigrationsAsync()).ToList();
+
+    if (aplicadas.Count == 0 && await db.Database.CanConnectAsync())
+        logger.LogWarning(
+            "⚠️ La BD no registra ninguna migración aplicada. Si las tablas ya existen, " +
+            "fueron creadas con EnsureCreated() y hay que sembrar __EFMigrationsHistory antes de migrar.");
+
+    if (pendientes.Count > 0)
+        logger.LogInformation("Migraciones pendientes: {Pendientes}", string.Join(", ", pendientes));
+
     try
     {
-        var db = scope.ServiceProvider.GetRequiredService<TrackerDbContext>();
         await db.Database.MigrateAsync();
         logger.LogInformation("✅ Migraciones aplicadas correctamente.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "❌ Error aplicando migraciones.");
+        // Antes esto solo se logueaba y la API arrancaba igual: quedaba sirviendo
+        // tráfico contra un esquema a medio migrar, devolviendo errores raros por
+        // endpoint en vez de un fallo claro. En una app de conciliación, datos
+        // servidos desde un esquema inconsistente son peores que no responder.
+        logger.LogCritical(ex, "❌ Error aplicando migraciones. La API no va a arrancar.");
+        throw;
     }
 }
 

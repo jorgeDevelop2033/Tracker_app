@@ -16,7 +16,10 @@ namespace Tracker.Infrastructure.Persistence
         public DbSet<TarifaPortico> TarifasPortico => Set<TarifaPortico>();
         public DbSet<BandaHorario> BandasHorario => Set<BandaHorario>();
         public DbSet<GpsFix> GpsFixes => Set<GpsFix>();
-         
+        public DbSet<Vehiculo> Vehiculos => Set<Vehiculo>();
+        public DbSet<AsignacionDispositivo> AsignacionesDispositivo => Set<AsignacionDispositivo>();
+        public DbSet<Viaje> Viajes => Set<Viaje>();
+
 
         public Task<int> SaveChangesAsync(CancellationToken ct) => base.SaveChangesAsync(ct);
         protected override void OnModelCreating(ModelBuilder modelBuilder)

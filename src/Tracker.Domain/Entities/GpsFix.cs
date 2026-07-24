@@ -13,6 +13,13 @@ namespace Tracker.Domain.Entities
         // Origen / dispositivo
         public string DeviceId { get; set; } = default!;
 
+        /// <summary>
+        /// Viaje al que pertenece el fix, si había uno en curso. Convierte la
+        /// ruta de un viaje en un WHERE por columna indexada en vez de adivinar
+        /// una ventana de tiempo, y permite purgar por viaje ya consolidado.
+        /// </summary>
+        public Guid? ViajeId { get; set; }
+
         // Coordenadas (también mantenemos Lat/Lon “planas” para lectura rápida)
         public double Lat { get; set; }
         public double Lon { get; set; }

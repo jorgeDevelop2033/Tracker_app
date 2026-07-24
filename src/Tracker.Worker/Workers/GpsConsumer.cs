@@ -35,7 +35,7 @@ public sealed class GpsConsumer : BackgroundService
 
         var cCfg = new ConsumerConfig
         {
-            BootstrapServers = _cfg["Kafka:BootstrapServers"] ?? "45.7.228.18:9092",
+            BootstrapServers = _cfg["Kafka:BootstrapServers"] ?? "localhost:9092",
             GroupId = _cfg["Kafka:GroupId"] ?? "tracker.worker.gps",
             EnableAutoCommit = false,
             AutoOffsetReset = AutoOffsetReset.Earliest,
@@ -47,7 +47,7 @@ public sealed class GpsConsumer : BackgroundService
 
         var srCfg = new SchemaRegistryConfig
         {
-            Url = _cfg["SchemaRegistry:Url"] ?? "http://45.7.228.18:8086"
+            Url = _cfg["SchemaRegistry:Url"] ?? "http://localhost:8081"
         };
 
         var sr = new CachedSchemaRegistryClient(srCfg);

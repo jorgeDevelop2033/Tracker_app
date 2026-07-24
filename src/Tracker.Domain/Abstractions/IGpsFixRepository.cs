@@ -14,6 +14,9 @@ namespace Tracker.Domain.Abstractions
         Task<GpsFix?> GetLastByDeviceAsync(string deviceId, CancellationToken ct = default);
         Task<List<GpsFix>> ListByDeviceAndUtcRangeAsync(string deviceId, DateTime fromUtc, DateTime toUtc, int take = 1000, CancellationToken ct = default);
 
+        /// <summary>Fixes de un viaje ordenados por tiempo. Base de la ruta y de la distancia.</summary>
+        Task<List<GpsFix>> ListByViajeAsync(Guid viajeId, int take = 50_000, CancellationToken ct = default);
+
         // Consultas espaciales (metros)
         Task<List<GpsFix>> ListWithinRadiusAsync(double lat, double lon, double radiusMeters, string? deviceIdFilter = null, int take = 500, CancellationToken ct = default);
 
