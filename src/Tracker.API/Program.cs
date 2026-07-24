@@ -340,16 +340,23 @@ app.MapPost("/api/porticos/reetiquetar",
 // todos los tránsitos a memoria.
 //
 // Filtra por vehiculoId (preferido) o deviceId (compatibilidad).
+//
+// `from`/`to` (DateTime) se aceptan como alias de `desde`/`hasta` (DateOnly):
+// el dashboard Angular y la app móvil ya en producción mandan los primeros, y
+// si se ignoraran devolveríamos el rango por defecto en vez del pedido — datos
+// equivocados sin ningún error visible, que es peor que fallar.
 app.MapGet("/api/gastos/resumen",
-    async (Guid? vehiculoId, string? deviceId, DateOnly? desde, DateOnly? hasta, string? groupBy,
+    async (Guid? vehiculoId, string? deviceId,
+           DateOnly? desde, DateOnly? hasta, DateTime? from, DateTime? to,
+           string? groupBy,
            TrackerDbContext db, CancellationToken ct) =>
 {
     if (vehiculoId is null && string.IsNullOrWhiteSpace(deviceId))
         return Results.BadRequest(new { error = "Indica vehiculoId o deviceId." });
 
     var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
-    var hastaLocal = hasta ?? hoy;
-    var desdeLocal = desde ?? hastaLocal.AddDays(-30);
+    var hastaLocal = hasta ?? (to is DateTime t2 ? DateOnly.FromDateTime(t2) : hoy);
+    var desdeLocal = desde ?? (from is DateTime f2 ? DateOnly.FromDateTime(f2) : hastaLocal.AddDays(-30));
 
     var q = db.Transitos.AsNoTracking()
         .Where(t => t.FechaLocal >= desdeLocal && t.FechaLocal <= hastaLocal);
@@ -360,42 +367,35 @@ app.MapGet("/api/gastos/resumen",
 
     var modo = (groupBy ?? "dia").ToLowerInvariant();
 
-    // La agregación ocurre en SQL. Para "dia" y "autopista" se agrupa por columna
-    // directa; para mes/semana se derivan del año/mes de la fecha local.
+    // La agregación (COUNT/SUM y el GROUP BY) ocurre siempre en SQL; solo el
+    // formateo de la etiqueta del período se hace ya materializado. DateOnly
+    // .ToString() y la concatenación de int no son traducibles por EF y
+    // reventarían en runtime si se dejaran dentro de la query.
     object periodos = modo switch
     {
-        "mes" => await q
+        "mes" => (await q
             .GroupBy(t => new { t.FechaLocal.Year, t.FechaLocal.Month })
-            .Select(g => new
-            {
-                periodo = g.Key.Year + "-" + (g.Key.Month < 10 ? "0" + g.Key.Month : g.Key.Month.ToString()),
-                transitos = g.Count(),
-                total = g.Sum(x => x.PrecioCalculado)
-            })
+            .Select(g => new { g.Key.Year, g.Key.Month, transitos = g.Count(), total = g.Sum(x => x.PrecioCalculado) })
+            .ToListAsync(ct))
+            .Select(x => new { periodo = $"{x.Year}-{x.Month:00}", x.transitos, x.total })
             .OrderBy(x => x.periodo)
-            .ToListAsync(ct),
+            .ToList(),
 
-        "autopista" => await q
+        "autopista" => (await q
             .GroupBy(t => t.AutopistaSnapshot)
-            .Select(g => new
-            {
-                periodo = g.Key ?? "(sin autopista)",
-                transitos = g.Count(),
-                total = g.Sum(x => x.PrecioCalculado)
-            })
+            .Select(g => new { autopista = g.Key, transitos = g.Count(), total = g.Sum(x => x.PrecioCalculado) })
+            .ToListAsync(ct))
+            .Select(x => new { periodo = x.autopista ?? "(sin autopista)", x.transitos, x.total })
             .OrderByDescending(x => x.total)
-            .ToListAsync(ct),
+            .ToList(),
 
-        _ => await q
+        _ => (await q
             .GroupBy(t => t.FechaLocal)
-            .Select(g => new
-            {
-                periodo = g.Key.ToString(),
-                transitos = g.Count(),
-                total = g.Sum(x => x.PrecioCalculado)
-            })
+            .Select(g => new { fecha = g.Key, transitos = g.Count(), total = g.Sum(x => x.PrecioCalculado) })
+            .ToListAsync(ct))
+            .Select(x => new { periodo = x.fecha.ToString("yyyy-MM-dd"), x.transitos, x.total })
             .OrderBy(x => x.periodo)
-            .ToListAsync(ct)
+            .ToList()
     };
 
     var totalTransitos = await q.CountAsync(ct);
@@ -407,6 +407,9 @@ app.MapGet("/api/gastos/resumen",
         deviceId,
         desde = desdeLocal,
         hasta = hastaLocal,
+        // Se repiten como from/to para no romper a quien ya lee esos campos.
+        from = desdeLocal,
+        to = hastaLocal,
         groupBy = modo,
         totalTransitos,
         totalGasto,
@@ -422,7 +425,8 @@ app.MapGet("/api/gastos/resumen",
 // siguiente. Take con Skip degrada al avanzar y no soporta bien años de
 // historial.
 app.MapGet("/api/gastos/detalle",
-    async (Guid? vehiculoId, string? deviceId, DateOnly? desde, DateOnly? hasta,
+    async (Guid? vehiculoId, string? deviceId,
+           DateOnly? desde, DateOnly? hasta, DateTime? from, DateTime? to,
            DateTime? antesDe, int? take,
            TrackerDbContext db, CancellationToken ct) =>
 {
@@ -430,8 +434,8 @@ app.MapGet("/api/gastos/detalle",
         return Results.BadRequest(new { error = "Indica vehiculoId o deviceId." });
 
     var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
-    var hastaLocal = hasta ?? hoy;
-    var desdeLocal = desde ?? hastaLocal.AddDays(-7);
+    var hastaLocal = hasta ?? (to is DateTime t2 ? DateOnly.FromDateTime(t2) : hoy);
+    var desdeLocal = desde ?? (from is DateTime f2 ? DateOnly.FromDateTime(f2) : hastaLocal.AddDays(-7));
     var limite = Math.Clamp(take ?? 200, 1, 1000);
 
     var q = db.Transitos.AsNoTracking()
@@ -441,34 +445,37 @@ app.MapGet("/api/gastos/detalle",
         ? q.Where(t => t.VehiculoId == v)
         : q.Where(t => t.DeviceId == deviceId);
 
+    // Paginación por keyset: el cliente pasa el Utc del último elemento
+    // recibido. Escala a años de historial, a diferencia de Skip/Take.
     if (antesDe is DateTime cursor)
         q = q.Where(t => t.Utc < cursor);
 
+    // Se devuelve un ARRAY plano, no un objeto envolvente: el dashboard Angular
+    // y la app móvil ya tipan esta respuesta como lista. Los campos nuevos son
+    // aditivos (fecha/hora local, sentido, diaTipo, estadoConciliacion) y se
+    // conservan utc y porticoId, que son los que consumen hoy.
     var data = await q
         .OrderByDescending(t => t.Utc)
         .Take(limite)
-        .Select(t => new TransitoDetalleDto(
-            t.Id,
-            t.FechaLocal,
-            t.HoraLocal,
-            t.PorticoCodigoSnapshot,
-            t.AutopistaSnapshot,
-            t.SentidoSnapshot,
-            t.Banda.ToString(),
-            t.Categoria.ToString(),
-            t.DiaTipo.ToString(),
-            t.PrecioCalculado,
-            t.EstadoConciliacion.ToString()))
+        .Select(t => new
+        {
+            id = t.Id,
+            utc = t.Utc,
+            fecha = t.FechaLocal,
+            hora = t.HoraLocal,
+            porticoId = t.PorticoId,
+            portico = t.PorticoCodigoSnapshot ?? t.Portico.Codigo,
+            autopista = t.AutopistaSnapshot ?? t.Portico.Autopista,
+            sentido = t.SentidoSnapshot,
+            banda = t.Banda.ToString(),
+            categoria = t.Categoria.ToString(),
+            diaTipo = t.DiaTipo.ToString(),
+            precio = t.PrecioCalculado,
+            estadoConciliacion = t.EstadoConciliacion.ToString()
+        })
         .ToListAsync(ct);
 
-    return Results.Ok(new
-    {
-        items = data,
-        // Cursor para la página siguiente; null cuando ya no hay más.
-        siguienteCursor = data.Count == limite
-            ? await q.OrderByDescending(t => t.Utc).Skip(limite - 1).Select(t => (DateTime?)t.Utc).FirstOrDefaultAsync(ct)
-            : null
-    });
+    return Results.Ok(data);
 }).WithName("GastoDetalle");
 
 // ===========================================================================
