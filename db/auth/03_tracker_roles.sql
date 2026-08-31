@@ -33,6 +33,8 @@
 -- ============================================================
 
 SET NOCOUNT ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
 GO
 
 DECLARE @now datetime2(7) = SYSUTCDATETIME();

@@ -128,6 +128,28 @@ foreach ($f in '01_tracker_permisos.sql','02_tracker_tenant.sql','03_tracker_rol
 El flag `-b` aborta ante el primer error; sin él, un fallo intermedio pasa
 desapercibido y los scripts siguientes corren sobre un estado incompleto.
 
+### Ejecución contra el VPS
+
+`deploy-vps.sh` hace el ciclo completo contra `devsogu-sqlserver`: copia los
+scripts, **respalda `AuthDb`** y ejecuta los cuatro en orden abortando al primer
+error.
+
+```bash
+./db/auth/deploy-vps.sh
+```
+
+No pide la clave de SQL: se autentica con la variable `MSSQL_SA_PASSWORD` que el
+propio contenedor ya expone, de modo que la credencial nunca sale del VPS. Los
+valores por defecto (host, puerto, contenedor, base) se sobrescriben por
+`VPS_HOST`, `VPS_PORT`, `SQL_CONTAINER`, `SQL_DB`, `SQL_USER`. Requiere acceso
+SSH al VPS.
+
+> **`SET QUOTED_IDENTIFIER ON` no es opcional.** `sqlcmd` lo deja apagado por
+> defecto y `Tenants` tiene un índice filtrado: sin la directiva, el `INSERT`
+> del script 02 falla con *Msg 1934 — INSERT failed because the following SET
+> options have incorrect settings*. Los cuatro scripts la fijan en su cabecera.
+> `sqlcmd` vive en `/opt/mssql-tools18/bin/` dentro del contenedor.
+
 ---
 
 ## Promoción a UAT y PROD
