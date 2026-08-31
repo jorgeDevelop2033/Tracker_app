@@ -105,7 +105,7 @@ El Worker es el orquestador: por cada mensaje Kafka persiste el fix, corre la de
 - **Entidades**: `Portico` (con `OsmId`, `Ubicacion` Point, `Corredor` LineString, `LongitudKm`), `Transito`, `Vehiculo`, `AsignacionDispositivo`, `Viaje`, `GpsFix`, `TarifaPortico`, `BandaHorario`.
 - **Enums** (`Tracker.Contracts`): `VehicleCategory`, `Banda`, `DiaTipo`, `EstadoViaje`, `EstadoConciliacion`.
 - **Seed**: `Seed/porticos_seed.json` (catálogo OSM) es **EmbeddedResource**; upsert idempotente por `OsmId` en cada arranque del Worker.
-- **Índices espaciales**: aplicar manualmente `src/Tracker.Infrastructure/Scripts/CreateSpatialIndexes.sql`.
+- **Índices espaciales**: los crea la migración `IndicesEspaciales` (EF no los modela, van como SQL crudo). Ya no es un paso manual: `Scripts/CreateSpatialIndexes.sql` queda solo para aplicarlos a mano sobre una base existente. Ese script apuntaba a `dbo.Porticos` cuando el schema real es `tracker`, así que nunca surtió efecto y producción corrió sin índice espacial: cada fix GPS hacía scan completo de `Porticos` calculando `STDistance` fila por fila, saturando el pool hasta devolver *Timeout expired* al cliente.
 
 ### Convenciones de persistencia (TrackerDbContext)
 
