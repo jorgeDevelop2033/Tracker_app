@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tracker.Application.Services;
 using Tracker.Domain.Abstractions;
 using Tracker.Domain.Porticos;
@@ -38,6 +39,11 @@ namespace Tracker.Infrastructure.DependencyInjection
             // Calendario/festivos Chile para derivar el tipo de día y la banda.
             services.AddSingleton<IFestivosChile>(_ => new FestivosChile());
             services.AddSingleton<ICalendarioChile, CalendarioChile>();
+
+            // Por defecto no hay escrituras diferidas: quien escribe directo a la
+            // BD (la API) no tiene nada que volcar. El Worker sobreescribe este
+            // registro con su BufferFixes, que sí acumula fixes en memoria.
+            services.TryAddSingleton<IEscriturasPendientes, SinEscriturasPendientes>();
 
             //services.AddScoped<IUnitOfWork>(sp => (IUnitOfWork)sp.GetRequiredService<TrackerDbContext>());
              

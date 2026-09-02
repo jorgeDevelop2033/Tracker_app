@@ -16,6 +16,7 @@ namespace Tracker.Application.Services
         private readonly IViajeRepository _viajes;
         private readonly IAsignacionDispositivoRepository _asignaciones;
         private readonly IGpsFixRepository _fixes;
+        private readonly IEscriturasPendientes _pendientes;
         private readonly ICalendarioChile _calendario;
         private readonly IUnitOfWork _uow;
         private readonly ILogger<ViajeService> _log;
@@ -33,6 +34,7 @@ namespace Tracker.Application.Services
             IViajeRepository viajes,
             IAsignacionDispositivoRepository asignaciones,
             IGpsFixRepository fixes,
+            IEscriturasPendientes pendientes,
             ICalendarioChile calendario,
             IUnitOfWork uow,
             ILogger<ViajeService> log)
@@ -40,6 +42,7 @@ namespace Tracker.Application.Services
             _viajes = viajes;
             _asignaciones = asignaciones;
             _fixes = fixes;
+            _pendientes = pendientes;
             _calendario = calendario;
             _uow = uow;
             _log = log;
@@ -120,6 +123,12 @@ namespace Tracker.Application.Services
             var (cantidad, total) = await _viajes.ResumenTransitosAsync(viaje.Id, ct);
             viaje.CantidadTransitos = cantidad;
             viaje.TotalGasto = total;
+
+            // Los fixes del Worker se escriben por lotes, así que los últimos
+            // segundos del viaje pueden seguir en memoria. Hay que volcarlos antes
+            // de leer: la RutaSimplificada se calcula una sola vez, aquí, y lo que
+            // no esté en la BD en este momento se pierde del recorrido para siempre.
+            await _pendientes.VolcarAsync(ct);
 
             var fixes = await _fixes.ListByViajeAsync(viaje.Id, ct: ct);
             viaje.CantidadFixes = fixes.Count;

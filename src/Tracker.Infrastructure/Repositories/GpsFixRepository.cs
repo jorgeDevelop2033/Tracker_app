@@ -40,17 +40,56 @@ namespace Tracker.Infrastructure.Repositories
             }
         }
 
+        /// <summary>
+        /// Inserta un lote de fixes. Si alguno choca con el índice único de posición
+        /// en Kafka, reintenta el resto fila a fila.
+        /// <para>
+        /// El reintento no es cosmético: <c>SaveChanges</c> es atómico, así que un
+        /// único duplicado (una reentrega de Kafka, un rebalanceo de particiones)
+        /// tumbaría el lote completo y se perderían cientos de fixes válidos junto
+        /// con él. Se paga una pasada lenta en el caso raro para no perder datos.
+        /// </para>
+        /// </summary>
         public async Task AddRangeAsync(IEnumerable<GpsFix> entities, CancellationToken ct = default)
         {
-            _db.GpsFixes.AddRange(entities);
+            var lote = entities as IList<GpsFix> ?? entities.ToList();
+            if (lote.Count == 0) return;
+
+            _db.GpsFixes.AddRange(lote);
             try
             {
                 await _db.SaveChangesAsync(ct);
+                return;
             }
             catch (DbUpdateException ex) when (IsUniqueKafkaOffsetViolation(ex))
             {
-                _log.LogWarning("Offsets duplicados detectados en batch. Reintentables/benignos.");
+                _log.LogWarning(
+                    "Duplicados en lote de {Filas} fixes. Reintentando fila a fila para salvar el resto.",
+                    lote.Count);
             }
+
+            // El DbContext quedó con el lote entero pendiente y en estado sucio;
+            // hay que soltarlo antes de reinsertar o volvería a fallar igual.
+            _db.ChangeTracker.Clear();
+
+            var guardados = 0;
+            foreach (var fix in lote)
+            {
+                if (ct.IsCancellationRequested) break;
+
+                _db.GpsFixes.Add(fix);
+                try
+                {
+                    await _db.SaveChangesAsync(ct);
+                    guardados++;
+                }
+                catch (DbUpdateException ex) when (IsUniqueKafkaOffsetViolation(ex))
+                {
+                    _db.ChangeTracker.Clear();
+                }
+            }
+
+            _log.LogInformation("Lote recuperado: {Guardados}/{Total} fixes insertados.", guardados, lote.Count);
         }
 
         private static bool IsUniqueKafkaOffsetViolation(DbUpdateException ex)

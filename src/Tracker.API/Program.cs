@@ -6,6 +6,7 @@
 
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Tracker.API.Contracts;
 using Tracker.API.Hubs;
 using Tracker.Application.Services;   // IViajeService
@@ -26,6 +27,10 @@ builder.Services.AddOpenApi();
 // Enums como string en el JSON de los minimal endpoints (acepta "C1","TBP","Laboral").
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+
+// Umbrales del filtro de calidad de traza (sección "Traza" de appsettings).
+builder.Services.Configure<OpcionesCalidadTraza>(
+    builder.Configuration.GetSection(OpcionesCalidadTraza.SeccionConfig));
 
 // ===== SignalR (broadcast en vivo al dashboard) =====
 builder.Services.AddSignalR();
@@ -142,9 +147,14 @@ app.MapGet("/api/devices/{id}/last",
 }).WithName("GetDeviceLast");
 
 // Recorrido histórico en una ventana de tiempo (para dibujar la polyline).
+// La traza se limpia antes de devolverla (ver FiltroCalidadTraza): sin eso, el
+// multipath urbano y los fixes desordenados dibujan zigzags que "atraviesan"
+// manzanas al doblar una esquina. Con ?crudo=true se devuelve sin filtrar,
+// para diagnosticar si un hueco en el trazo es del GPS o del filtro.
 app.MapGet("/api/devices/{id}/track",
-    async (string id, DateTime? from, DateTime? to, int? take,
-           IGpsFixRepository repo, CancellationToken ct) =>
+    async (string id, DateTime? from, DateTime? to, int? take, bool? crudo,
+           IGpsFixRepository repo, IOptions<OpcionesCalidadTraza> opciones,
+           CancellationToken ct) =>
 {
     var toUtc = (to ?? DateTime.UtcNow);
     var fromUtc = (from ?? toUtc.AddHours(-1));
@@ -152,11 +162,16 @@ app.MapGet("/api/devices/{id}/track",
     var fixes = await repo.ListByDeviceAndUtcRangeAsync(
         id, fromUtc, toUtc, take ?? 1000, ct);
 
-    var points = fixes
-        .OrderBy(f => f.Utc)
-        .Select(f => new LivePositionDto(
-            f.DeviceId, f.Lat, f.Lon,
-            f.SpeedKph, f.HeadingDeg, f.AccuracyM, f.Utc));
+    var opt = opciones.Value;
+    if (crudo == true) opt = new OpcionesCalidadTraza { Habilitado = false };
+
+    var limpios = FiltroCalidadTraza.Filtrar(
+        fixes.Select(f => new PuntoTraza(
+            f.Lat, f.Lon, f.SpeedKph, f.HeadingDeg, f.AccuracyM, f.Utc)),
+        opt);
+
+    var points = limpios.Select(p => new LivePositionDto(
+        id, p.Lat, p.Lon, p.SpeedKph, p.HeadingDeg, p.AccuracyM, p.Utc));
 
     return Results.Ok(points);
 }).WithName("GetDeviceTrack");
@@ -676,25 +691,34 @@ app.MapGet("/api/viajes/{id:guid}",
 // Recorrido del viaje. Devuelve la ruta simplificada si el viaje ya está cerrado
 // (es ~20x más chica y basta para dibujar); si sigue abierto, los fixes crudos.
 app.MapGet("/api/viajes/{id:guid}/ruta",
-    async (Guid id, IViajeRepository repo, IGpsFixRepository fixes, CancellationToken ct) =>
+    async (Guid id, IViajeRepository repo, IGpsFixRepository fixes,
+           IOptions<OpcionesCalidadTraza> opciones, CancellationToken ct) =>
 {
     var viaje = await repo.GetByIdAsync(id, ct);
     if (viaje is null) return Results.NotFound();
 
     if (viaje.RutaSimplificada is not null)
     {
+        // Ya viene limpia: se construyó al cerrar el viaje sobre fixes filtrados.
         var puntos = viaje.RutaSimplificada.Coordinates
             .Select(c => new { lat = c.Y, lon = c.X });
 
         return Results.Ok(new { viajeId = id, origen = "simplificada", puntos });
     }
 
+    // Viaje aún abierto: se dibuja desde los fixes crudos, así que hay que
+    // limpiarlos aquí para que la traza en vivo no zigzaguee.
     var crudos = await fixes.ListByViajeAsync(id, ct: ct);
+    var limpios = FiltroCalidadTraza.Filtrar(
+        crudos.Select(f => new PuntoTraza(
+            f.Lat, f.Lon, f.SpeedKph, f.HeadingDeg, f.AccuracyM, f.Utc)),
+        opciones.Value);
+
     return Results.Ok(new
     {
         viajeId = id,
         origen = "fixes",
-        puntos = crudos.Select(f => new { lat = f.Lat, lon = f.Lon, utc = f.Utc })
+        puntos = limpios.Select(p => new { lat = p.Lat, lon = p.Lon, utc = p.Utc })
     });
 }).WithName("RutaViaje");
 

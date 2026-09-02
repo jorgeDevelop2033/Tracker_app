@@ -1,5 +1,7 @@
 ﻿#nullable enable
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Tracker.Application.Services;
@@ -48,6 +50,18 @@ internal class Program
         builder.Services.AddScoped<IGpsIngestService, GpsIngestService>();
         builder.Services.AddScoped<IPorticoDetectionService, PorticoDetectionService>();
 
+        // Escritura por lotes de gps_fix. El buffer es singleton (vive por encima
+        // del scope por mensaje de Kafka) y abre su propio scope al volcar.
+        builder.Services.Configure<Tracker.Worker.Ingesta.OpcionesLoteFixes>(
+            builder.Configuration.GetSection(Tracker.Worker.Ingesta.OpcionesLoteFixes.SeccionConfig));
+        builder.Services.AddSingleton<Tracker.Worker.Ingesta.BufferFixes>();
+
+        // El cierre de viaje pide volcar lo pendiente antes de leer los fixes con
+        // los que arma la RutaSimplificada. Replace y no Add: AddInfrastructure ya
+        // dejó registrado el no-op, y aquí tiene que ganar el buffer real.
+        builder.Services.Replace(ServiceDescriptor.Singleton<Tracker.Domain.Abstractions.IEscriturasPendientes>(
+            sp => sp.GetRequiredService<Tracker.Worker.Ingesta.BufferFixes>()));
+
         // Broadcaster en vivo hacia Tracker.API (/internal/live). Best-effort.
         var liveApiBase = builder.Configuration["LiveApi:BaseUrl"] ?? "http://localhost:5000";
         var internalKey = builder.Configuration["InternalApi:Key"] ?? "";
@@ -62,6 +76,12 @@ internal class Program
 
         // Hosted Services
         builder.Services.AddHostedService<GpsConsumer>();
+
+        // Registrado después de GpsConsumer a propósito: el host detiene los
+        // hosted services en orden inverso al registro, así que el consumer deja
+        // de encolar antes de que este haga el volcado final del buffer.
+        builder.Services.AddHostedService<Tracker.Worker.Ingesta.VolcadoFixesService>();
+
         // Red de seguridad: cierra viajes que la app dejó abiertos.
         builder.Services.AddHostedService<Tracker.Worker.Workers.CierreViajesService>();
 
