@@ -130,6 +130,13 @@ public sealed class GpsConsumer : BackgroundService
                 // 👇 CREA SCOPE, resuelve servicios scoped y ejecuta ingest + detección de pórtico
                 using (var scope = _scopeFactory.CreateScope())
                 {
+                    // Encola el fix en el buffer de escritura por lotes; no toca la
+                    // BD todavía. El commit de Kafka que va más abajo confirma el
+                    // mensaje aunque la fila siga en memoria: si el Worker muere
+                    // justo ahí se pierden hasta unos segundos de fixes crudos.
+                    // Se asume a propósito — el fix es dato operativo y efímero,
+                    // mientras que el Transito, que es lo que factura, sí se
+                    // persiste de inmediato en la detección de más abajo.
                     var ingest = scope.ServiceProvider.GetRequiredService<IGpsIngestService>();
                     await ingest.IngestAsync(dto, meta, stoppingToken);
 
@@ -150,7 +157,7 @@ public sealed class GpsConsumer : BackgroundService
                     }
                 }
 
-                _log.LogInformation("📍 Guardado Device={Device} Lat={Lat} Lon={Lon} @ {Utc} (offset {Partition}:{Offset})",
+                _log.LogInformation("📍 Procesado Device={Device} Lat={Lat} Lon={Lon} @ {Utc} (offset {Partition}:{Offset})",
                     dto.DeviceId, dto.Lat, dto.Lon, dto.Utc, meta.Partition, meta.Offset);
 
                 SafeCommit(cr);

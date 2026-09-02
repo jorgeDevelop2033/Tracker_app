@@ -1,27 +1,25 @@
-﻿// Tracker.Worker/Application/Services/GpsIngestService.cs
+// Tracker.Worker/Application/Services/GpsIngestService.cs
 #nullable enable
-using Microsoft.EntityFrameworkCore;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 using Tracker.Domain.Entities;
- 
 
-using Tracker.Domain.Abstractions;
 using Tracker.Application.Dtos;
 using Tracker.Domain.Viajes;
+using Tracker.Worker.Ingesta;
 
 namespace Tracker.Worker.Application.Services
 {
     public sealed class GpsIngestService : IGpsIngestService
     {
-        private readonly IGpsFixRepository _repo;
+        private readonly BufferFixes _buffer;
         private readonly IViajeRepository _viajes;
         private readonly GeometryFactory _geo;
         private readonly ILogger<GpsIngestService> _log;
 
-        public GpsIngestService(IGpsFixRepository repo, IViajeRepository viajes, ILogger<GpsIngestService> log)
+        public GpsIngestService(BufferFixes buffer, IViajeRepository viajes, ILogger<GpsIngestService> log)
         {
-            _repo = repo;
+            _buffer = buffer;
             _viajes = viajes;
             _log = log;
             _geo = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326); // geography
@@ -29,12 +27,12 @@ namespace Tracker.Worker.Application.Services
 
         public async Task IngestAsync(GpsEventDto dto, KafkaMetaDto meta, CancellationToken ct)
         {
-            // Idempotencia rápida por posición en Kafka
-            if (await _repo.ExistsKafkaOffsetAsync(meta.Topic, meta.Partition, meta.Offset, ct))
-            {
-                _log.LogDebug("⏭️ Skip duplicado por offset: {Topic}[{Partition}]@{Offset}", meta.Topic, meta.Partition, meta.Offset);
-                return;
-            }
+            // Nota: ya no se consulta la BD para descartar offsets repetidos. Esa
+            // comprobación costaba un SELECT por mensaje — el mismo round-trip que
+            // el lote busca evitar — y sólo servía para ahorrar una inserción en el
+            // caso raro de una reentrega. El índice único ux_gpsfix_kafka_position
+            // sigue siendo la garantía real de idempotencia, y el repositorio ya
+            // trata su violación como benigna.
 
             // Validaciones mínimas y rangos
             if (double.IsNaN(dto.Lat) || double.IsNaN(dto.Lon))
@@ -70,19 +68,10 @@ namespace Tracker.Worker.Application.Services
                 KafkaOffset = meta.Offset
             };
 
-            try
-            {
-                await _repo.AddAsync(entity, ct); // maneja DbUpdateException por índice único
-            }
-            catch (DbUpdateException ex) when (IsUniqueOffsetViolation(ex))
-            {
-                // carrera entre consumidores del mismo grupo, benigno
-                _log.LogWarning("⚠️ Offset duplicado (benigno): {Topic}[{Partition}]@{Offset}",
-                    meta.Topic, meta.Partition, meta.Offset);
-            }
+            // Se difiere la escritura: el buffer la agrupa con otras. La detección
+            // de pórtico y el broadcast que vienen después en GpsConsumer no
+            // dependen de que la fila ya esté en la BD.
+            await _buffer.EncolarAsync(entity, ct);
         }
-
-        private static bool IsUniqueOffsetViolation(DbUpdateException ex) =>
-            ex.InnerException?.Message.Contains("ux_gpsfix_kafka_position", StringComparison.OrdinalIgnoreCase) == true;
     }
 }
