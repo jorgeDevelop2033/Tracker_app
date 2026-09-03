@@ -1,4 +1,5 @@
-﻿// Tracker.Worker.Infrastructure/Services/PorticoDetectionService.cs
+// Tracker.Worker.Infrastructure/Services/PorticoDetectionService.cs
+using Microsoft.Extensions.Options;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 using Tracker.Domain.Porticos;                 // IPorticoRepository
@@ -25,6 +26,8 @@ namespace Tracker.Worker.Infrastructure.Services
         private readonly IAsignacionDispositivoRepository _asignaciones;
         private readonly IVehiculoRepository _vehiculos;
         private readonly IViajeRepository _viajes;
+        private readonly IUltimaPosicion _ultimaPosicion;
+        private readonly OpcionesSegmento _segmento;
         private readonly IUnitOfWork _uow; // si no usas UoW, reemplaza por save en capa superior
         private readonly GeometryFactory _gf = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
@@ -42,6 +45,8 @@ namespace Tracker.Worker.Infrastructure.Services
             IAsignacionDispositivoRepository asignaciones,
             IVehiculoRepository vehiculos,
             IViajeRepository viajes,
+            IUltimaPosicion ultimaPosicion,
+            IOptions<OpcionesSegmento> segmento,
             IUnitOfWork uow)
         {
             _porticos = porticos;
@@ -52,6 +57,8 @@ namespace Tracker.Worker.Infrastructure.Services
             _asignaciones = asignaciones;
             _vehiculos = vehiculos;
             _viajes = viajes;
+            _ultimaPosicion = ultimaPosicion;
+            _segmento = segmento.Value;
             _uow = uow;
         }
 
@@ -61,23 +68,42 @@ namespace Tracker.Worker.Infrastructure.Services
             var punto = _gf.CreatePoint(new Coordinate(evt.Lon, evt.Lat));
             var ts = evt.Utc;
 
-            // 2) Candidatos cercanos por punto (ordenados por distancia en BD)
-            var candidatos = await _porticos.GetNearAsync(
-                position4326: punto,
-                maxDistanceMeters: RADIO_M,
-                take: 5,
-                ct: ct);
+            // 2) Candidatos. Se busca contra el TRAYECTO recorrido desde el fix
+            //    anterior, no contra el punto suelto: a 100 km/h con muestreo de
+            //    5 s el vehículo avanza ~139 m entre fixes, más que el diámetro de
+            //    la ventana de 50 m, así que un pórtico puede quedar entre dos
+            //    puntos sin que ninguno caiga dentro y el peaje no se cobra.
+            var previa = _ultimaPosicion.Obtener(evt.DeviceId);
+            var segmento = ConstruirSegmento(previa, evt);
+
+            var candidatos = segmento is not null
+                ? await _porticos.GetNearSegmentAsync(segmento, RADIO_M, take: 5, ct: ct)
+                : await _porticos.GetNearAsync(punto, RADIO_M, take: 5, ct: ct);
+
+            // Se registra siempre, haya o no candidatos: el próximo fix necesita
+            // este como origen de su segmento.
+            _ultimaPosicion.Registrar(evt.DeviceId, evt.Lat, evt.Lon, ts);
 
             if (candidatos.Count == 0)
                 return null;
 
-            // 3) Recorre candidatos; valida heading solo si hay corredor y viene heading
+            // 3) Recorre candidatos y valida el sentido de circulación.
             foreach (var portico in candidatos)
             {
-                if (evt.HeadingDeg is double heading && portico.Corredor is not null)
+                // Rumbo real del vehículo: el del trayecto recorrido si lo hay, y
+                // si no el que reporta el dispositivo. Preferir el del segmento
+                // evita depender de que el móvil informe HeadingDeg, que es
+                // opcional en el proto y con el vehículo lento suele ser ruido.
+                var rumbo = RumboDelSegmento(previa, evt) ?? evt.HeadingDeg;
+
+                // Nota: hoy este filtro casi nunca se aplica, porque Corredor está
+                // a NULL en los 187 pórticos del seed (el catálogo OSM sólo trae
+                // Lat/Lon). Hasta que se pueble, el sentido no se puede discriminar
+                // y dos pórticos opuestos a menos de 50 m son indistinguibles.
+                if (rumbo is double r && portico.Corredor is not null)
                 {
                     var bearing = BearingFromLine(portico.Corredor);
-                    var diff = AngularDiff(heading, bearing);
+                    var diff = AngularDiff(r, bearing);
                     if (diff > TOL_ANGULO) continue;
                 }
 
@@ -214,6 +240,63 @@ namespace Tracker.Worker.Infrastructure.Services
             }
 
             return 0m;
+        }
+
+        // --- trayecto recorrido entre dos fixes ---
+
+        /// <summary>
+        /// Une el fix previo con el actual. Devuelve null si no hay previo o si
+        /// unirlos sería inventar un trayecto.
+        /// </summary>
+        private LineString? ConstruirSegmento(PosicionPrevia? previa, GpsEventDto evt)
+        {
+            if (!_segmento.Habilitado || previa is not PosicionPrevia p)
+                return null;
+
+            var segundos = (evt.Utc - p.Utc).TotalSeconds;
+
+            // Fix atrasado o repetido: el segmento iría hacia atrás en el tiempo.
+            if (segundos <= 0) return null;
+
+            // Hueco largo — túnel, pérdida de señal, app cerrada. La recta entre
+            // ambos puntos no es por donde fue el vehículo y podría cruzar pórticos
+            // por los que nunca pasó, generando cobros falsos. Se prefiere no
+            // detectar a cobrar de más.
+            if (segundos > _segmento.MaxSegundosEntreFixes) return null;
+
+            var metros = DistanciaM(p.Lat, p.Lon, evt.Lat, evt.Lon);
+
+            // Sin movimiento apreciable no hay trayecto que mirar; el punto basta.
+            if (metros < 1) return null;
+
+            // Salto imposible en poco tiempo: multipath, no desplazamiento real.
+            if (metros > _segmento.MaxLongitudM) return null;
+
+            return _gf.CreateLineString(new[]
+            {
+                new Coordinate(p.Lon, p.Lat),
+                new Coordinate(evt.Lon, evt.Lat)
+            });
+        }
+
+        /// <summary>Rumbo real del vehículo entre el fix previo y el actual.</summary>
+        private double? RumboDelSegmento(PosicionPrevia? previa, GpsEventDto evt)
+        {
+            if (previa is not PosicionPrevia p) return null;
+            if (DistanciaM(p.Lat, p.Lon, evt.Lat, evt.Lon) < 5) return null; // ruido parado
+            return Bearing(p.Lat, p.Lon, evt.Lat, evt.Lon);
+        }
+
+        /// <summary>Distancia haversine en metros.</summary>
+        private static double DistanciaM(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6_371_000;
+            var dLat = Deg2Rad(lat2 - lat1);
+            var dLon = Deg2Rad(lon2 - lon1);
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(Deg2Rad(lat1)) * Math.Cos(Deg2Rad(lat2)) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         }
 
         // --- utilidades de heading ---

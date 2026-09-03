@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -61,6 +61,13 @@ internal class Program
         // dejó registrado el no-op, y aquí tiene que ganar el buffer real.
         builder.Services.Replace(ServiceDescriptor.Singleton<Tracker.Domain.Abstractions.IEscriturasPendientes>(
             sp => sp.GetRequiredService<Tracker.Worker.Ingesta.BufferFixes>()));
+
+        // Memoria del fix anterior por device, para detectar pórticos por el
+        // trayecto recorrido y no sólo por el punto suelto. Replace: AddInfrastructure
+        // ya dejó el no-op registrado y aquí tiene que ganar la cache real.
+        builder.Services.Replace(ServiceDescriptor.Singleton<
+            Tracker.Application.Services.IUltimaPosicion,
+            Tracker.Worker.Ingesta.UltimaPosicionEnMemoria>());
 
         // Broadcaster en vivo hacia Tracker.API (/internal/live). Best-effort.
         var liveApiBase = builder.Configuration["LiveApi:BaseUrl"] ?? "http://localhost:5000";
