@@ -8,6 +8,9 @@
     <!-- Solo abstracciones: permite loguear desde los servicios de aplicación
          sin atar la capa a ninguna implementación de logging. -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+    <!-- Ídem para IOptions<>: los umbrales de detección se configuran por
+         appsettings sin que la capa dependa del sistema de configuración. -->
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.3" />
   </ItemGroup>
 
   <PropertyGroup>

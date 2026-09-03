@@ -25,6 +25,21 @@ namespace Tracker.Infrastructure.Repositories
                 .ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<Portico>> GetNearSegmentAsync(
+            LineString segmento4326, double maxDistanceMeters, int take = 20, CancellationToken ct = default)
+        {
+            // STDistance de geography a un LineString devuelve la distancia mínima
+            // al trayecto completo, no a sus extremos: un pórtico que quedó justo
+            // en medio de dos fixes da distancia ~0 aunque ambos fixes estén lejos.
+            // El índice espacial IX_Porticos_Ubicacion sigue sirviendo aquí.
+            return await _db.Porticos
+                .AsNoTracking()
+                .Where(p => p.Ubicacion != null && p.Ubicacion.Distance(segmento4326) <= maxDistanceMeters)
+                .OrderBy(p => p.Ubicacion!.Distance(segmento4326))
+                .Take(take)
+                .ToListAsync(ct);
+        }
+
         public async Task<IReadOnlyList<Portico>> IntersectsCorredorAsync(
             LineString corredor4326, int take = 50, CancellationToken ct = default)
         {

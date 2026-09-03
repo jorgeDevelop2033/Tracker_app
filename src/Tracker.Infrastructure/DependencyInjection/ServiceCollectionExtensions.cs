@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -44,6 +44,13 @@ namespace Tracker.Infrastructure.DependencyInjection
             // BD (la API) no tiene nada que volcar. El Worker sobreescribe este
             // registro con su BufferFixes, que sí acumula fixes en memoria.
             services.TryAddSingleton<IEscriturasPendientes, SinEscriturasPendientes>();
+
+            // Umbrales del segmento recorrido, que usa PorticoDetectionService.
+            services.Configure<OpcionesSegmento>(cfg.GetSection(OpcionesSegmento.SeccionConfig));
+
+            // Sin memoria del fix anterior por defecto: la API resuelve el detector
+            // por DI pero no ingiere fixes. El Worker lo reemplaza por la cache real.
+            services.TryAddSingleton<IUltimaPosicion, SinUltimaPosicion>();
 
             //services.AddScoped<IUnitOfWork>(sp => (IUnitOfWork)sp.GetRequiredService<TrackerDbContext>());
              
