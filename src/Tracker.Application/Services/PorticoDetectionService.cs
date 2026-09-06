@@ -25,6 +25,7 @@ namespace Tracker.Worker.Infrastructure.Services
         private readonly IAsignacionDispositivoRepository _asignaciones;
         private readonly IVehiculoRepository _vehiculos;
         private readonly IViajeRepository _viajes;
+        private readonly IUltimaPosicionCache _ultimaPosicion;
         private readonly IUnitOfWork _uow; // si no usas UoW, reemplaza por save en capa superior
         private readonly GeometryFactory _gf = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
@@ -32,6 +33,12 @@ namespace Tracker.Worker.Infrastructure.Services
         private const double RADIO_M = 50.0;          // radio de captura
         private const double TOL_ANGULO = 45.0;       // tolerancia de heading
         private static readonly TimeSpan VENTANA = TimeSpan.FromSeconds(90); // de-bounce
+
+        // Límites para unir dos fixes en un tramo. Si el device estuvo sin señal,
+        // el "segmento" sería una recta de kilómetros que atraviesa pórticos por
+        // los que nunca se pasó: en ese caso es más honesto no detectar nada.
+        private static readonly TimeSpan MAX_HUECO = TimeSpan.FromSeconds(60);
+        private const double MAX_TRAMO_M = 3000.0;
 
         public PorticoDetectionService(
             IPorticoRepository porticos,
@@ -42,6 +49,7 @@ namespace Tracker.Worker.Infrastructure.Services
             IAsignacionDispositivoRepository asignaciones,
             IVehiculoRepository vehiculos,
             IViajeRepository viajes,
+            IUltimaPosicionCache ultimaPosicion,
             IUnitOfWork uow)
         {
             _porticos = porticos;
@@ -52,6 +60,7 @@ namespace Tracker.Worker.Infrastructure.Services
             _asignaciones = asignaciones;
             _vehiculos = vehiculos;
             _viajes = viajes;
+            _ultimaPosicion = ultimaPosicion;
             _uow = uow;
         }
 
@@ -61,20 +70,52 @@ namespace Tracker.Worker.Infrastructure.Services
             var punto = _gf.CreatePoint(new Coordinate(evt.Lon, evt.Lat));
             var ts = evt.Utc;
 
-            // 2) Candidatos cercanos por punto (ordenados por distancia en BD)
-            var candidatos = await _porticos.GetNearAsync(
-                position4326: punto,
-                maxDistanceMeters: RADIO_M,
-                take: 5,
-                ct: ct);
+            // 2) Tramo recorrido desde el fix anterior. Detectar por segmento y no
+            //    por punto es lo que evita saltarse pórticos: a 100 km/h se avanzan
+            //    ~55 m entre muestras y el radio de captura son 50 m, así que es
+            //    perfectamente posible que ninguna muestra caiga dentro.
+            var anterior = _ultimaPosicion.Obtener(evt.DeviceId);
+            _ultimaPosicion.Guardar(evt.DeviceId, new UltimaPosicion(evt.Lat, evt.Lon, ts));
+
+            LineString? tramo = null;
+            double? headingTramo = null;
+
+            if (anterior is not null)
+            {
+                var hueco = ts - anterior.Utc;
+                var avanceM = DistanciaMetros(anterior.Lat, anterior.Lon, evt.Lat, evt.Lon);
+
+                // > 0 descarta eventos desordenados o repetidos; avanceM > 0 evita
+                // una línea degenerada (device quieto), que SQL Server rechaza.
+                if (hueco > TimeSpan.Zero && hueco <= MAX_HUECO && avanceM > 0 && avanceM <= MAX_TRAMO_M)
+                {
+                    tramo = _gf.CreateLineString(new[]
+                    {
+                        new Coordinate(anterior.Lon, anterior.Lat),
+                        new Coordinate(evt.Lon, evt.Lat),
+                    });
+                    headingTramo = Bearing(anterior.Lat, anterior.Lon, evt.Lat, evt.Lon);
+                }
+            }
+
+            // Candidatos cercanos (ordenados por distancia en BD). Sin tramo válido
+            // se cae al modo antiguo por punto, que sigue siendo correcto.
+            var candidatos = tramo is not null
+                ? await _porticos.GetNearLineAsync(tramo, RADIO_M, take: 5, ct: ct)
+                : await _porticos.GetNearAsync(punto, RADIO_M, take: 5, ct: ct);
 
             if (candidatos.Count == 0)
                 return null;
 
-            // 3) Recorre candidatos; valida heading solo si hay corredor y viene heading
+            // El heading del tramo suple al del GPS: al ir despacio o parado, Android
+            // e iOS mandan heading nulo o basura, y sin él el filtro de corredor no
+            // se puede aplicar.
+            var headingEfectivo = evt.HeadingDeg ?? headingTramo;
+
+            // 3) Recorre candidatos; valida heading solo si hay corredor y hay heading
             foreach (var portico in candidatos)
             {
-                if (evt.HeadingDeg is double heading && portico.Corredor is not null)
+                if (headingEfectivo is double heading && portico.Corredor is not null)
                 {
                     var bearing = BearingFromLine(portico.Corredor);
                     var diff = AngularDiff(heading, bearing);
@@ -224,6 +265,17 @@ namespace Tracker.Worker.Infrastructure.Services
             var a = ls.GetCoordinateN(0);
             var b = ls.GetCoordinateN(1);
             return Bearing(a.Y, a.X, b.Y, b.X); // (latA, lonA, latB, lonB)
+        }
+
+        /// <summary>Distancia haversine en metros. Sólo para acotar el tramo.</summary>
+        private static double DistanciaMetros(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371000.0;
+            var dLat = Deg2Rad(lat2 - lat1);
+            var dLon = Deg2Rad(lon2 - lon1);
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+                  + Math.Cos(Deg2Rad(lat1)) * Math.Cos(Deg2Rad(lat2)) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            return 2 * R * Math.Asin(Math.Min(1.0, Math.Sqrt(a)));
         }
 
         private static double Bearing(double lat1, double lon1, double lat2, double lon2)
