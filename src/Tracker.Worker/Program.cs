@@ -50,6 +50,10 @@ internal class Program
         builder.Services.AddScoped<IGpsIngestService, GpsIngestService>();
         builder.Services.AddScoped<IPorticoDetectionService, PorticoDetectionService>();
 
+        // Singleton a propósito: el detector es Scoped (uno por mensaje de Kafka),
+        // así que el fix anterior de cada device tiene que vivir fuera del scope.
+        builder.Services.AddSingleton<IUltimaPosicionCache, UltimaPosicionCache>();
+
         // Escritura por lotes de gps_fix. El buffer es singleton (vive por encima
         // del scope por mensaje de Kafka) y abre su propio scope al volcar.
         builder.Services.Configure<Tracker.Worker.Ingesta.OpcionesLoteFixes>(
