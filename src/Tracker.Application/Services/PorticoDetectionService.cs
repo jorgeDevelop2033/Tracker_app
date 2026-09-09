@@ -1,4 +1,5 @@
 ﻿// Tracker.Worker.Infrastructure/Services/PorticoDetectionService.cs
+using System.Linq;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 using Tracker.Domain.Porticos;                 // IPorticoRepository
@@ -31,6 +32,11 @@ namespace Tracker.Worker.Infrastructure.Services
 
         // Como no existen en Portico, uso constantes locales
         private const double RADIO_M = 50.0;          // radio de captura
+
+        // Radio para considerar que dos pórticos son el mismo paso físico en
+        // sentidos opuestos. Medido en el catálogo: 139 de 188 tienen gemelo a
+        // menos de 150 m, con una media de 32 m.
+        private const double RADIO_GEMELO_M = 150.0;
         private const double TOL_ANGULO = 45.0;       // tolerancia de heading
         private static readonly TimeSpan VENTANA = TimeSpan.FromSeconds(90); // de-bounce
 
@@ -107,13 +113,24 @@ namespace Tracker.Worker.Infrastructure.Services
             if (candidatos.Count == 0)
                 return null;
 
+            // Con tramo válido, el pórtico correcto es el PRIMERO que se encuentra
+            // en el sentido de la marcha. Cada gantry está situado aguas arriba de
+            // su propio sentido, así que el del carril contrario queda por detrás:
+            // yendo al sur se cruza antes el del sur, y al norte antes el del norte.
+            // Sin esto se cobraban los dos, con un segundo de diferencia.
+            var ordenados = anterior is not null && tramo is not null
+                ? candidatos
+                    .OrderBy(p => DistanciaMetros(anterior.Lat, anterior.Lon, p.Ubicacion!.Y, p.Ubicacion!.X))
+                    .ToList()
+                : candidatos.ToList();
+
             // El heading del tramo suple al del GPS: al ir despacio o parado, Android
             // e iOS mandan heading nulo o basura, y sin él el filtro de corredor no
             // se puede aplicar.
             var headingEfectivo = evt.HeadingDeg ?? headingTramo;
 
             // 3) Recorre candidatos; valida heading solo si hay corredor y hay heading
-            foreach (var portico in candidatos)
+            foreach (var portico in ordenados)
             {
                 if (headingEfectivo is double heading && portico.Corredor is not null)
                 {
@@ -122,13 +139,17 @@ namespace Tracker.Worker.Infrastructure.Services
                     if (diff > TOL_ANGULO) continue;
                 }
 
-                // 4) De-bounce temporal (usa tu repo: GetByPorticoAsync)
+                // 4) De-bounce ESPACIAL, no por Id. Antes se miraba sólo este pórtico,
+                //    así que el gemelo del sentido contrario pasaba el filtro y se
+                //    cobraba dos veces el mismo paso. Ahora basta con que haya un
+                //    tránsito reciente en el entorno para descartarlo.
                 var desde = ts - VENTANA;
                 var hasta = ts + VENTANA;
 
                 // PageSize=1 para hacer existencia O(1)
                 var page = new Pagination(1, 1);
-                var recientes = await _transitos.GetByPorticoAsync(portico.Id, desde, hasta, page, ct);
+                var recientes = await _transitos.SearchByAreaAsync(
+                    portico.Ubicacion!, RADIO_GEMELO_M, desde, hasta, page, ct);
                 if (recientes.Total > 0)
                     continue;
 
