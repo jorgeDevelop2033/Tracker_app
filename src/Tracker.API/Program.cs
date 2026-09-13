@@ -1,4 +1,4 @@
-// Program.cs (Tracker.API)
+﻿// Program.cs (Tracker.API)
 // Responsabilidades de este servicio:
 //   1. REST de lectura para el dashboard (última posición, recorrido histórico, pórticos).
 //   2. SignalR LiveHub: reemite en vivo las posiciones que el Worker le empuja por HTTP.
@@ -63,6 +63,12 @@ builder.Services.AddDbContext<TrackerDbContext>(opt =>
 
 // AddInfrastructure no registra el repo de GpsFix; la API lo necesita para las lecturas.
 builder.Services.AddScoped<IGpsFixRepository, GpsFixRepository>();
+
+// AddInfrastructure sí registra IPorticoDetectionService, que depende del cache de
+// última posición. El Worker lo registra por su cuenta; la API no lo hacía y el
+// contenedor DI fallaba al validarse, tumbando el arranque entero.
+builder.Services.AddSingleton<Tracker.Application.Services.IUltimaPosicionCache,
+                              Tracker.Application.Services.UltimaPosicionCache>();
 
 var app = builder.Build();
 
@@ -266,6 +272,62 @@ app.MapPost("/api/tarifas/bulk",
     await uow.SaveChangesAsync(ct);
     return Results.Ok(new { cargadas, noEncontrados = noEncontrados.Distinct() });
 }).WithName("BulkTarifas");
+
+// Auditoría de cobertura tarifaria: qué pórticos ya tienen precio y cuáles no.
+// Sin esto sólo se puede saber entrando por SQL al contenedor de la BD, que no
+// está expuesto fuera de la red del VPS. `soloFaltantes=true` devuelve el
+// listado de carga pendiente; `autopista` acota a una concesión.
+app.MapGet("/api/tarifas/cobertura",
+    async (string? autopista, bool? soloFaltantes, HttpContext http,
+           TrackerDbContext db, CancellationToken ct) =>
+{
+    if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
+
+    var hoy = DateTime.UtcNow;
+    var q = db.Porticos.AsNoTracking();
+    if (!string.IsNullOrWhiteSpace(autopista))
+        q = q.Where(p => p.Autopista == autopista);
+
+    // Sólo cuenta como cubierto lo que está vigente HOY: una tarifa cerrada con
+    // VigenteHasta en el pasado deja al pórtico cobrando 0 igual que si no
+    // existiera, así que reportarla como cobertura escondería el problema.
+    var filas = await q
+        .OrderBy(p => p.Autopista).ThenBy(p => p.Codigo)
+        .Select(p => new
+        {
+            p.Id,
+            p.Autopista,
+            p.Codigo,
+            p.Sentido,
+            p.Descripcion,
+            Tarifas = p.Tarifas.Count(t => t.VigenteDesde <= hoy
+                                        && (t.VigenteHasta == null || t.VigenteHasta > hoy))
+        })
+        .ToListAsync(ct);
+
+    var detalle = (soloFaltantes == true ? filas.Where(f => f.Tarifas == 0) : filas).ToList();
+
+    var resumen = filas
+        .GroupBy(f => f.Autopista)
+        .Select(g => new
+        {
+            Autopista = g.Key,
+            Porticos = g.Count(),
+            ConTarifa = g.Count(f => f.Tarifas > 0),
+            SinTarifa = g.Count(f => f.Tarifas == 0)
+        })
+        .OrderByDescending(x => x.SinTarifa).ThenBy(x => x.Autopista)
+        .ToList();
+
+    return Results.Ok(new
+    {
+        totalPorticos = filas.Count,
+        conTarifa = filas.Count(f => f.Tarifas > 0),
+        sinTarifa = filas.Count(f => f.Tarifas == 0),
+        resumen,
+        detalle
+    });
+}).WithName("CoberturaTarifas");
 
 app.MapPost("/api/bandas-horario/bulk",
     async (BandaHorarioBulkRow[] filas, HttpContext http, TrackerDbContext db, CancellationToken ct) =>
