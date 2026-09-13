@@ -1,4 +1,4 @@
-using Tracker.Contracts.Enums;
+﻿using Tracker.Contracts.Enums;
 
 namespace Tracker.API.Contracts;
 
@@ -16,6 +16,17 @@ public sealed record TarifaBulkRow(
     decimal? KmTramo,
     DateTime? VigenteDesde,
     string? Autopista = null);  // si viene, solo aplica a pórticos de esa autopista (códigos colisionan entre concesiones)
+
+/// <summary>
+/// Una combinación (pórtico, banda) a cerrar. Categoria nula cierra todas las
+/// categorías de esa banda. Autopista acota la concesión, porque los códigos de
+/// pórtico colisionan entre ellas.
+/// </summary>
+public sealed record CierreTarifaRow(
+    string Codigo,
+    Banda Banda,
+    VehicleCategory? Categoria = null,
+    string? Autopista = null);
 
 /// <summary>
 /// Ventana horaria de banda para un pórtico (identificado por su Código).
