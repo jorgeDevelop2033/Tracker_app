@@ -329,6 +329,46 @@ app.MapGet("/api/tarifas/cobertura",
     });
 }).WithName("CoberturaTarifas");
 
+// Cierra tarifas vigentes sin reemplazarlas. Al recargar un tarifario oficial,
+// las combinaciones (pórtico, categoría, banda) que la nueva lámina ya no
+// publica quedan vigentes con el valor antiguo: UpsertVigencia sólo cierra lo
+// que sustituye, así que nadie las toca y siguen cobrando. Cerrar es poner
+// VigenteHasta, nunca borrar: los Transito ya emitidos apuntan a su
+// TarifaPorticoId y deben seguir siendo auditables.
+app.MapPost("/api/tarifas/cerrar",
+    async (CierreTarifaRow[] filas, HttpContext http, TrackerDbContext db,
+           CancellationToken ct) =>
+{
+    if (!InternalAuth(http, internalKey)) return Results.Unauthorized();
+    if (filas.Length == 0) return Results.BadRequest(new { error = "sin filas" });
+
+    var corte = DateTime.UtcNow;
+    var codigos = filas.Select(f => f.Codigo).Distinct().ToArray();
+    var porticos = await db.Porticos.AsNoTracking()
+        .Where(p => codigos.Contains(p.Codigo))
+        .Select(p => new { p.Id, p.Codigo, p.Autopista })
+        .ToListAsync(ct);
+
+    int cerradas = 0; var noEncontrados = new List<string>();
+    foreach (var f in filas)
+    {
+        var ids = porticos
+            .Where(p => p.Codigo == f.Codigo && (f.Autopista == null || p.Autopista == f.Autopista))
+            .Select(p => p.Id).ToArray();
+        if (ids.Length == 0) { noEncontrados.Add(f.Autopista is null ? f.Codigo : $"{f.Codigo}@{f.Autopista}"); continue; }
+
+        var abiertas = await db.TarifasPortico
+            .Where(t => ids.Contains(t.PorticoId) && t.Banda == f.Banda && t.VigenteHasta == null)
+            .Where(t => f.Categoria == null || t.Categoria == f.Categoria)
+            .ToListAsync(ct);
+
+        foreach (var t in abiertas) { t.VigenteHasta = corte; cerradas++; }
+    }
+
+    await db.SaveChangesAsync(ct);
+    return Results.Ok(new { cerradas, noEncontrados = noEncontrados.Distinct() });
+}).WithName("CerrarTarifas");
+
 app.MapPost("/api/bandas-horario/bulk",
     async (BandaHorarioBulkRow[] filas, HttpContext http, TrackerDbContext db, CancellationToken ct) =>
 {
